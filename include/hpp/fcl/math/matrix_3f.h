@@ -75,10 +75,11 @@ public:
   Matrix3f Sigma;
 
   /// @brief Variations along the eign axes
-  Matrix3f::Scalar sigma[3];
+  Vec3f sigma;
 
   /// @brief Eigen axes of the variation matrix
-  Vec3f axis[3];
+  /// The vectors are the colums.
+  Matrix3f axes;
 
   Variance3f() {}
 
@@ -90,7 +91,7 @@ public:
   /// @brief init the Variance
   void init() 
   {
-    eigen(Sigma, sigma, axis);
+    eigen(Sigma, sigma, axes);
   }
 
   /// @brief Compute the sqrt of Sigma matrix based on the eigen decomposition result, this is useful when the uncertainty matrix is initialized as a square variation matrix
@@ -108,9 +109,9 @@ public:
     {
       for(std::size_t j = 0; j < 3; ++j)
       {
-        Sigma(i, j) += sigma[0] * axis[0][i] * axis[0][j];
-        Sigma(i, j) += sigma[1] * axis[1][i] * axis[1][j];
-        Sigma(i, j) += sigma[2] * axis[2][i] * axis[2][j];
+        Sigma(i, j) += sigma[0] * axes(0,i) * axes(0,j);
+        Sigma(i, j) += sigma[1] * axes(1,i) * axes(1,j);
+        Sigma(i, j) += sigma[2] * axes(2,i) * axes(2,j);
       }
     }
 

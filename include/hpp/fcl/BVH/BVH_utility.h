@@ -62,8 +62,8 @@ void BVHExpand(BVHModel<BV>& model, const Variance3f* ucs, FCL_REAL r)
 
       for(int k = 0; k < 3; ++k)
       {
-        bv += (v + uc.axis[k] * (r * uc.sigma[k]));
-        bv += (v - uc.axis[k] * (r * uc.sigma[k]));
+        bv += (v + uc.axes.col(k) * (r * uc.sigma[k]));
+        bv += (v - uc.axes.col(k) * (r * uc.sigma[k]));
       }
     }
 

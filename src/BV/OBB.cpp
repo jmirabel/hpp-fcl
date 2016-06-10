@@ -66,9 +66,8 @@ inline OBB merge_largedist(const OBB& b1, const OBB& b2)
   Vec3f vertex[16];
   computeVertices(b1, vertex);
   computeVertices(b2, vertex + 8);
-  Matrix3f M;
-  Vec3f E[3];
-  Matrix3f::Scalar s[3] = {0, 0, 0};
+  Matrix3f M, E;
+  Vec3f s;
 
   // obb axes
   b.axes.col(0).noalias() = (b1.To - b2.To).normalized();
@@ -88,8 +87,8 @@ inline OBB merge_largedist(const OBB& b1, const OBB& b2)
   else { mid = 2; }
 
 
-  b.axes.col(1) << E[0][max], E[1][max], E[2][max];
-  b.axes.col(2) << E[0][mid], E[1][mid], E[2][mid];
+  b.axes.col(1).noalias() = E.row(max);
+  b.axes.col(2).noalias() = E.row(mid);
 
   // set obb centers and extensions
   Vec3f center, extent;

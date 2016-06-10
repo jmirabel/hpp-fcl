@@ -1070,8 +1070,8 @@ RSS RSS::operator + (const RSS& other) const
 
 
   Matrix3f M; // row first matrix
-  Vec3f E[3]; // row first eigen-vectors
-  Matrix3f::Scalar s[3] = {0, 0, 0};
+  Matrix3f E; // row first eigen-vectors
+  Vec3f s;
 
   getCovariance(v, NULL, NULL, NULL, 16, M);
   eigen(M, s, E);
@@ -1084,11 +1084,9 @@ RSS RSS::operator + (const RSS& other) const
   else { mid = 2; }
 
   // column first matrix, as the axis in RSS
-  bv.axes.col(0) << E[0][max], E[1][max], E[2][max];
-  bv.axes.col(1) << E[0][mid], E[1][mid], E[2][mid];
-  bv.axes.col(2) << E[1][max]*E[2][mid] - E[1][mid]*E[2][max],
-                    E[0][mid]*E[2][max] - E[0][max]*E[2][mid],
-                    E[0][max]*E[1][mid] - E[0][mid]*E[1][max];
+  bv.axes.col(0).noalias() = E.row(max);
+  bv.axes.col(1).noalias() = E.row(mid);
+  bv.axes.col(2).noalias() = E.row(max).cross(E.row(mid));
 
   // set rss origin, rectangle size and radius
   getRadiusAndOriginAndRectangleSize(v, NULL, NULL, NULL, 16, bv.axes, bv.Tr, bv.l, bv.r);

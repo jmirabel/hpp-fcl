@@ -144,19 +144,25 @@ void relativeTransform(const Eigen::MatrixBase<Derived>& R1, const Eigen::Matrix
 }
 
 /// @brief compute the eigen vector and eigen vector of a matrix. dout is the eigen values, vout is the eigen vectors
-template<typename Derived, typename Vector>
-void eigen(const Eigen::MatrixBase<Derived>& m, typename Derived::Scalar dout[3], Vector* vout)
+template<typename Derived, typename EigenValue, typename EigenVector>
+void eigen(const Eigen::MatrixBase<Derived>& m, const Eigen::MatrixBase<EigenValue>& dout, const Eigen::MatrixBase<EigenVector>& vout)
 {
+  EIGEN_STATIC_ASSERT_MATRIX_SPECIFIC_SIZE(Derived, 3, 3);
+  EIGEN_STATIC_ASSERT_VECTOR_SPECIFIC_SIZE(EigenValue, 3);
+  EIGEN_STATIC_ASSERT_MATRIX_SPECIFIC_SIZE(EigenVector, 3, 3);
   typedef typename Derived::Scalar Scalar;
-  Derived R(m.derived());
+  typedef Eigen::Matrix<Scalar, 3, 3> Rot_t;
+  typedef Eigen::Matrix<Scalar, 3, 1> Vec_t;
+
+  Rot_t R(m.derived());
   int n = 3;
   int j, iq, ip, i;
   Scalar tresh, theta, tau, t, sm, s, h, g, c;
   int nrot;
-  Scalar b[3];
-  Scalar z[3];
-  Scalar v[3][3] = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
-  Scalar d[3];
+  Vec_t b;
+  Vec_t z;
+  Rot_t v (Rot_t::Identity());
+  Vec_t d;
 
   for(ip = 0; ip < n; ++ip)
   {
@@ -174,10 +180,8 @@ void eigen(const Eigen::MatrixBase<Derived>& m, typename Derived::Scalar dout[3]
         sm += std::abs(R(ip, iq));
     if(sm == 0.0)
     {
-      vout[0] << v[0][0], v[0][1], v[0][2];
-      vout[1] << v[1][0], v[1][1], v[1][2];
-      vout[2] << v[2][0], v[2][1], v[2][2];
-      dout[0] = d[0]; dout[1] = d[1]; dout[2] = d[2];
+      const_cast < Eigen::MatrixBase<EigenVector>& > (vout).noalias() = v;
+      const_cast < Eigen::MatrixBase<EigenValue>& > (dout).noalias() = d;
       return;
     }
 
@@ -215,7 +219,7 @@ void eigen(const Eigen::MatrixBase<Derived>& m, typename Derived::Scalar dout[3]
           for(j = 0; j < ip; ++j) { g = R(j, ip); h = R(j, iq); R(j, ip) = g - s * (h + g * tau); R(j, iq) = h + s * (g - h * tau); }
           for(j = ip + 1; j < iq; ++j) { g = R(ip, j); h = R(j, iq); R(ip, j) = g - s * (h + g * tau); R(j, iq) = h + s * (g - h * tau); }
           for(j = iq + 1; j < n; ++j) { g = R(ip, j); h = R(iq, j); R(ip, j) = g - s * (h + g * tau); R(iq, j) = h + s * (g - h * tau); }
-          for(j = 0; j < n; ++j) { g = v[j][ip]; h = v[j][iq]; v[j][ip] = g - s * (h + g * tau); v[j][iq] = h + s * (g - h * tau); }
+          for(j = 0; j < n; ++j) { g = v(j,ip); h = v(j,iq); v(j,ip) = g - s * (h + g * tau); v(j,iq) = h + s * (g - h * tau); }
           nrot++;
         }
       }

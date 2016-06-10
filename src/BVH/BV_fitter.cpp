@@ -49,7 +49,11 @@ static const double invCosA = 2.0 / sqrt(3.0);
 static const double sinA = 0.5;
 static const double cosA = sqrt(3.0) / 2.0;
 
-static inline void axisFromEigen(Vec3f eigenV[3], Matrix3f::Scalar eigenS[3], Matrix3f& axes)
+template<typename EigenVector, typename EigenValue, typename Derived>
+static inline void axisFromEigen(
+  const Eigen::MatrixBase<EigenVector>& eigenV,
+  const Eigen::MatrixBase<EigenValue>&  eigenS,
+  const Eigen::MatrixBase<Derived>&     axes)
 {
   int min, mid, max;
   if(eigenS[0] > eigenS[1]) { max = 0; min = 1; }
@@ -58,11 +62,11 @@ static inline void axisFromEigen(Vec3f eigenV[3], Matrix3f::Scalar eigenS[3], Ma
   else if(eigenS[2] > eigenS[max]) { mid = max; max = 2; }
   else { mid = 2; }
 
-  axes.col(0) << eigenV[0][max], eigenV[1][max], eigenV[2][max];
-  axes.col(1) << eigenV[0][mid], eigenV[1][mid], eigenV[2][mid];
-  axes.col(2) << eigenV[1][max]*eigenV[2][mid] - eigenV[1][mid]*eigenV[2][max],
-                 eigenV[0][mid]*eigenV[2][max] - eigenV[0][max]*eigenV[2][mid],
-                 eigenV[0][max]*eigenV[1][mid] - eigenV[0][mid]*eigenV[1][max];
+  Eigen::MatrixBase<Derived>& _axes =
+    const_cast < Eigen::MatrixBase<Derived>& > (axes);
+  _axes.col(0).noalias() = eigenV.row(max);
+  _axes.col(1).noalias() = eigenV.row(mid);
+  _axes.col(2).noalias() = eigenV.row(max).cross(eigenV.row(mid));
 }
 
 namespace OBB_fit_functions
@@ -126,9 +130,8 @@ void fit6(Vec3f* ps, OBB& bv)
 
 void fitn(Vec3f* ps, int n, OBB& bv)
 {
-  Matrix3f M;
-  Vec3f E[3];
-  Matrix3f::Scalar s[3] = {0, 0, 0}; // three eigen values
+  Matrix3f M, E;
+  Vec3f s;
 
   getCovariance(ps, NULL, NULL, NULL, n, M);
   eigen(M, s, E);
@@ -203,9 +206,8 @@ void fit6(Vec3f* ps, RSS& bv)
 
 void fitn(Vec3f* ps, int n, RSS& bv)
 {
-  Matrix3f M; // row first matrix
-  Vec3f E[3]; // row first eigen-vectors
-  Matrix3f::Scalar s[3] = {0, 0, 0};
+  Matrix3f M, E; // row first matrix
+  Vec3f s;
 
   getCovariance(ps, NULL, NULL, NULL, n, M);
   eigen(M, s, E);
@@ -312,9 +314,8 @@ void fit3(Vec3f* ps, kIOS& bv)
 
 void fitn(Vec3f* ps, int n, kIOS& bv)
 {
-  Matrix3f M;
-  Vec3f E[3];
-  Matrix3f::Scalar s[3] = {0, 0, 0}; // three eigen values;
+  Matrix3f M, E;
+  Vec3f s;
 
   getCovariance(ps, NULL, NULL, NULL, n, M);
   eigen(M, s, E);
@@ -494,9 +495,8 @@ OBB BVFitter<OBB>::fit(unsigned int* primitive_indices, int num_primitives)
 {
   OBB bv;
 
-  Matrix3f M; // row first matrix
-  Vec3f E[3]; // row first eigen-vectors
-  Matrix3f::Scalar s[3]; // three eigen values
+  Matrix3f M, E; // row first matrix
+  Vec3f s; // three eigen values
 
   getCovariance(vertices, prev_vertices, tri_indices, primitive_indices, num_primitives, M);
   eigen(M, s, E);
@@ -512,9 +512,8 @@ OBB BVFitter<OBB>::fit(unsigned int* primitive_indices, int num_primitives)
 OBBRSS BVFitter<OBBRSS>::fit(unsigned int* primitive_indices, int num_primitives)
 {
   OBBRSS bv;
-  Matrix3f M;
-  Vec3f E[3];
-  Matrix3f::Scalar s[3];
+  Matrix3f M, E;
+  Vec3f s;
 
   getCovariance(vertices, prev_vertices, tri_indices, primitive_indices, num_primitives, M);
   eigen(M, s, E);
@@ -541,9 +540,8 @@ RSS BVFitter<RSS>::fit(unsigned int* primitive_indices, int num_primitives)
 {
   RSS bv;
 
-  Matrix3f M; // row first matrix
-  Vec3f E[3]; // row first eigen-vectors
-  Matrix3f::Scalar s[3]; // three eigen values
+  Matrix3f M, E; // row first matrix
+  Vec3f s; // three eigen values
   getCovariance(vertices, prev_vertices, tri_indices, primitive_indices, num_primitives, M);
   eigen(M, s, E);
   axisFromEigen(E, s, bv.axes);
@@ -569,9 +567,8 @@ kIOS BVFitter<kIOS>::fit(unsigned int* primitive_indices, int num_primitives)
 {
   kIOS bv;
 
-  Matrix3f M; // row first matrix
-  Vec3f E[3]; // row first eigen-vectors
-  Matrix3f::Scalar s[3];
+  Matrix3f M, E; // row first matrix
+  Vec3f s;
   
   getCovariance(vertices, prev_vertices, tri_indices, primitive_indices, num_primitives, M);
   eigen(M, s, E);
