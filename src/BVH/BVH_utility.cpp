@@ -199,7 +199,7 @@ void getRadiusAndOriginAndRectangleSize(Vec3f* ps, Vec3f* ps2, Triangle* ts, uns
 
   int size_P = ((ps2) ? 2 : 1) * ((ts) ? 3 : 1) * n;
 
-  FCL_REAL (*P)[3] = new FCL_REAL[size_P][3];
+  Eigen::Matrix<FCL_REAL, 3, Eigen::Dynamic> P(3,size_P);
 
   int P_id = 0;
   
@@ -214,10 +214,7 @@ void getRadiusAndOriginAndRectangleSize(Vec3f* ps, Vec3f* ps2, Triangle* ts, uns
       {
         int point_id = t[j];
         const Vec3f& p = ps[point_id];
-        Vec3f v(p[0], p[1], p[2]);
-        P[P_id][0] = axes.col(0).dot(v);
-        P[P_id][1] = axes.col(1).dot(v);
-        P[P_id][2] = axes.col(2).dot(v);
+        P.col(P_id).noalias() = axes.transpose() * p;
         P_id++;
       }
 
@@ -227,11 +224,12 @@ void getRadiusAndOriginAndRectangleSize(Vec3f* ps, Vec3f* ps2, Triangle* ts, uns
         {
           int point_id = t[j];
           const Vec3f& p = ps2[point_id];
-          // FIXME Is this right ?????
-          Vec3f v(p[0], p[1], p[2]);
-          P[P_id][0] = axes.col(0).dot(v);
-          P[P_id][1] = axes.col(0).dot(v);
-          P[P_id][2] = axes.col(1).dot(v);
+          // FIXME Was this right ?????
+          // Vec3f v(p[0], p[1], p[2]);
+          // P[P_id][0] = axis[0].dot(v);
+          // P[P_id][1] = axis[0].dot(v);
+          // P[P_id][2] = axis[1].dot(v);
+          P.col(P_id).noalias() = axes.transpose() * p;
           P_id++;
         }
       }
@@ -244,18 +242,13 @@ void getRadiusAndOriginAndRectangleSize(Vec3f* ps, Vec3f* ps2, Triangle* ts, uns
       int index = indirect_index ? indices[i] : i;
 
       const Vec3f& p = ps[index];
-      Vec3f v(p[0], p[1], p[2]);
-      P[P_id][0] = axes.col(0).dot(v);
-      P[P_id][1] = axes.col(1).dot(v);
-      P[P_id][2] = axes.col(2).dot(v);
+      P.col(P_id).noalias() = axes.transpose() * p;
       P_id++;
 
       if(ps2)
       {
         const Vec3f& v = ps2[index];
-        P[P_id][0] = axes.col(0).dot(v);
-        P[P_id][1] = axes.col(1).dot(v);
-        P[P_id][2] = axes.col(2).dot(v);
+        P.col(P_id).noalias() = axes.transpose() * v;
         P_id++;
       }
     }
@@ -265,11 +258,11 @@ void getRadiusAndOriginAndRectangleSize(Vec3f* ps, Vec3f* ps2, Triangle* ts, uns
 
   FCL_REAL cz, radsqr;
 
-  minz = maxz = P[0][2];
+  minz = maxz = P(2,0);
 
   for(int i = 1; i < size_P; ++i)
   {
-    FCL_REAL z_value = P[i][2];
+    FCL_REAL z_value = P(2,i);
     if(z_value < minz) minz = z_value;
     else if(z_value > maxz) maxz = z_value;
   }
@@ -285,11 +278,11 @@ void getRadiusAndOriginAndRectangleSize(Vec3f* ps, Vec3f* ps2, Triangle* ts, uns
   int minindex, maxindex;
   minindex = maxindex = 0;
   FCL_REAL mintmp, maxtmp;
-  mintmp = maxtmp = P[0][0];
+  mintmp = maxtmp = P(0,0);
 
   for(int i = 1; i < size_P; ++i)
   {
-    FCL_REAL x_value = P[i][0];
+    FCL_REAL x_value = P(0,i);
     if(x_value < mintmp)
     {
       minindex = i;
@@ -303,20 +296,20 @@ void getRadiusAndOriginAndRectangleSize(Vec3f* ps, Vec3f* ps2, Triangle* ts, uns
   }
 
   FCL_REAL x, dz;
-  dz = P[minindex][2] - cz;
-  minx = P[minindex][0] + std::sqrt(std::max<FCL_REAL>(radsqr - dz * dz, 0));
-  dz = P[maxindex][2] - cz;
-  maxx = P[maxindex][0] - std::sqrt(std::max<FCL_REAL>(radsqr - dz * dz, 0));
+  dz = P(2,minindex) - cz;
+  minx = P(0,minindex) + std::sqrt(std::max<FCL_REAL>(radsqr - dz * dz, 0));
+  dz = P(2,maxindex) - cz;
+  maxx = P(0,maxindex) - std::sqrt(std::max<FCL_REAL>(radsqr - dz * dz, 0));
 
 
   // grow minx
 
   for(int i = 0; i < size_P; ++i)
   {
-    if(P[i][0] < minx)
+    if(P(0,i) < minx)
     {
-      dz = P[i][2] - cz;
-      x = P[i][0] + std::sqrt(std::max<FCL_REAL>(radsqr - dz * dz, 0));
+      dz = P(2,i) - cz;
+      x = P(0,i) + std::sqrt(std::max<FCL_REAL>(radsqr - dz * dz, 0));
       if(x < minx) minx = x;
     }
   }
@@ -325,10 +318,10 @@ void getRadiusAndOriginAndRectangleSize(Vec3f* ps, Vec3f* ps2, Triangle* ts, uns
 
   for(int i = 0; i < size_P; ++i)
   {
-    if(P[i][0] > maxx)
+    if(P(0,i) > maxx)
     {
-      dz = P[i][2] - cz;
-      x = P[i][0] - std::sqrt(std::max<FCL_REAL>(radsqr - dz * dz, 0));
+      dz = P(2,i) - cz;
+      x = P(0,i) - std::sqrt(std::max<FCL_REAL>(radsqr - dz * dz, 0));
       if(x > maxx) maxx = x;
     }
   }
@@ -338,10 +331,10 @@ void getRadiusAndOriginAndRectangleSize(Vec3f* ps, Vec3f* ps2, Triangle* ts, uns
   // find miny and maxy as starting points
 
   minindex = maxindex = 0;
-  mintmp = maxtmp = P[0][1];
+  mintmp = maxtmp = P(1,0);
   for(int i = 1; i < size_P; ++i)
   {
-    FCL_REAL y_value = P[i][1];
+    FCL_REAL y_value = P(1,i);
     if(y_value < mintmp)
     {
       minindex = i;
@@ -355,19 +348,19 @@ void getRadiusAndOriginAndRectangleSize(Vec3f* ps, Vec3f* ps2, Triangle* ts, uns
   }
 
   FCL_REAL y;
-  dz = P[minindex][2] - cz;
-  miny = P[minindex][1] + std::sqrt(std::max<FCL_REAL>(radsqr - dz * dz, 0));
-  dz = P[maxindex][2] - cz;
-  maxy = P[maxindex][1] - std::sqrt(std::max<FCL_REAL>(radsqr - dz * dz, 0));
+  dz = P(2,minindex) - cz;
+  miny = P(1,minindex) + std::sqrt(std::max<FCL_REAL>(radsqr - dz * dz, 0));
+  dz = P(2,maxindex) - cz;
+  maxy = P(1,maxindex) - std::sqrt(std::max<FCL_REAL>(radsqr - dz * dz, 0));
 
   // grow miny
 
   for(int i = 0; i < size_P; ++i)
   {
-    if(P[i][1] < miny)
+    if(P(1,i) < miny)
     {
-      dz = P[i][2] - cz;
-      y = P[i][1] + std::sqrt(std::max<FCL_REAL>(radsqr - dz * dz, 0));
+      dz = P(2,i) - cz;
+      y = P(1,i) + std::sqrt(std::max<FCL_REAL>(radsqr - dz * dz, 0));
       if(y < miny) miny = y;
     }
   }
@@ -376,10 +369,10 @@ void getRadiusAndOriginAndRectangleSize(Vec3f* ps, Vec3f* ps2, Triangle* ts, uns
 
   for(int i = 0; i < size_P; ++i)
   {
-    if(P[i][1] > maxy)
+    if(P(1,i) > maxy)
     {
-      dz = P[i][2] - cz;
-      y = P[i][1] - std::sqrt(std::max<FCL_REAL>(radsqr - dz * dz, 0));
+      dz = P(2,i) - cz;
+      y = P(1,i) - std::sqrt(std::max<FCL_REAL>(radsqr - dz * dz, 0));
       if(y > maxy) maxy = y;
     }
   }
@@ -390,16 +383,16 @@ void getRadiusAndOriginAndRectangleSize(Vec3f* ps, Vec3f* ps2, Triangle* ts, uns
   FCL_REAL a = std::sqrt((FCL_REAL)0.5);
   for(int i = 0; i < size_P; ++i)
   {
-    if(P[i][0] > maxx)
+    if(P(0,i) > maxx)
     {
-      if(P[i][1] > maxy)
+      if(P(1,i) > maxy)
       {
-        dx = P[i][0] - maxx;
-        dy = P[i][1] - maxy;
+        dx = P(0,i) - maxx;
+        dy = P(1,i) - maxy;
         u = dx * a + dy * a;
         t = (a*u - dx)*(a*u - dx) +
             (a*u - dy)*(a*u - dy) +
-            (cz - P[i][2])*(cz - P[i][2]);
+            (cz - P(2,i))*(cz - P(2,i));
         u = u - std::sqrt(std::max<FCL_REAL>(radsqr - t, 0));
         if(u > 0)
         {
@@ -407,14 +400,14 @@ void getRadiusAndOriginAndRectangleSize(Vec3f* ps, Vec3f* ps2, Triangle* ts, uns
           maxy += u*a;
         }
       }
-      else if(P[i][1] < miny)
+      else if(P(1,i) < miny)
       {
-        dx = P[i][0] - maxx;
-        dy = P[i][1] - miny;
+        dx = P(0,i) - maxx;
+        dy = P(1,i) - miny;
         u = dx * a - dy * a;
         t = (a*u - dx)*(a*u - dx) +
             (-a*u - dy)*(-a*u - dy) +
-            (cz - P[i][2])*(cz - P[i][2]);
+            (cz - P(2,i))*(cz - P(2,i));
         u = u - std::sqrt(std::max<FCL_REAL>(radsqr - t, 0));
         if(u > 0)
         {
@@ -423,16 +416,16 @@ void getRadiusAndOriginAndRectangleSize(Vec3f* ps, Vec3f* ps2, Triangle* ts, uns
         }
       }
     }
-    else if(P[i][0] < minx)
+    else if(P(0,i) < minx)
     {
-      if(P[i][1] > maxy)
+      if(P(1,i) > maxy)
       {
-        dx = P[i][0] - minx;
-        dy = P[i][1] - maxy;
+        dx = P(0,i) - minx;
+        dy = P(1,i) - maxy;
         u = dy * a - dx * a;
         t = (-a*u - dx)*(-a*u - dx) +
             (a*u - dy)*(a*u - dy) +
-            (cz - P[i][2])*(cz - P[i][2]);
+            (cz - P(2,i))*(cz - P(2,i));
         u = u - std::sqrt(std::max<FCL_REAL>(radsqr - t, 0));
         if(u > 0)
         {
@@ -440,14 +433,14 @@ void getRadiusAndOriginAndRectangleSize(Vec3f* ps, Vec3f* ps2, Triangle* ts, uns
           maxy += u*a;
         }
       }
-      else if(P[i][1] < miny)
+      else if(P(1,i) < miny)
       {
-        dx = P[i][0] - minx;
-        dy = P[i][1] - miny;
+        dx = P(0,i) - minx;
+        dy = P(1,i) - miny;
         u = -dx * a - dy * a;
         t = (-a*u - dx)*(-a*u - dx) +
             (-a*u - dy)*(-a*u - dy) +
-            (cz - P[i][2])*(cz - P[i][2]);
+            (cz - P(2,i))*(cz - P(2,i));
         u = u - std::sqrt(std::max<FCL_REAL>(radsqr - t, 0));
         if (u > 0)
         {
@@ -458,14 +451,13 @@ void getRadiusAndOriginAndRectangleSize(Vec3f* ps, Vec3f* ps2, Triangle* ts, uns
     }
   }
 
+  // origin = axes.col(0) * minx + axes.col(1) * miny + axes.col(2) * cz;
   origin.noalias() = axes * Vec3f(minx, miny, cz);
 
   l[0] = maxx - minx;
   if(l[0] < 0) l[0] = 0;
   l[1] = maxy - miny;
   if(l[1] < 0) l[1] = 0;
-
-  delete [] P;
 
 }
 
