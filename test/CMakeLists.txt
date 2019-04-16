@@ -45,6 +45,8 @@ add_fcl_test(test_fcl_bvh_models test_fcl_bvh_models.cpp test_fcl_utility.cpp)
 
 add_fcl_test(test_fcl_profiling test_fcl_profiling.cpp test_fcl_utility.cpp)
 PKG_CONFIG_USE_DEPENDENCY(test_fcl_profiling assimp)
+add_fcl_test(test_fcl_serialization test_fcl_serialization.cpp)
+PKG_CONFIG_USE_DEPENDENCY(test_fcl_serialization assimp)
 
 add_fcl_test(test_fcl_gjk test_fcl_gjk.cpp)
 add_fcl_test(test_fcl_octree test_fcl_octree.cpp test_fcl_utility.cpp)

@@ -244,6 +244,50 @@ int BVHModel<BV>::addTriangle(const Vec3f& p1, const Vec3f& p2, const Vec3f& p3)
 }
 
 template<typename BV>
+int BVHModel<BV>::addTriangle(const std::size_t& ip1, const std::size_t& ip2, const std::size_t& ip3)
+{
+  if(build_state == BVH_BUILD_STATE_PROCESSED)
+  {
+    std::cerr << "BVH Warning! Call addTriangle() in a wrong order. addTriangle() was ignored. Must do a beginModel() to clear the model for addition of new triangles." << std::endl;
+    return BVH_ERR_BUILD_OUT_OF_SEQUENCE;
+  }
+
+  // Out of range
+  if (ip1 >= num_vertices || ip2 >= num_vertices || ip3 >= num_vertices)
+  {
+    std::cerr << "BVH Warning! Call addTriangle() with out of range indices." << std::endl;
+    return BVH_ERR_INCORRECT_DATA;
+  }
+
+  // Degenerated case.
+  if (ip1 == ip2 || ip1 == ip3 || ip2 == ip3)
+  {
+    std::cerr << "BVH Warning! Call addTriangle() with a degenerated triangle." << std::endl;
+    return BVH_ERR_INCORRECT_DATA;
+  }
+
+  if(num_tris >= num_tris_allocated)
+  {
+    Triangle* temp = new Triangle[num_tris_allocated * 2];
+    if(!temp)
+    {
+      std::cerr << "BVH Error! Out of memory for tri_indices array on addTriangle() call!" << std::endl;
+      return BVH_ERR_MODEL_OUT_OF_MEMORY;
+    }
+
+    memcpy(temp, tri_indices, sizeof(Triangle) * num_tris);
+    delete [] tri_indices;
+    tri_indices = temp;
+    num_tris_allocated *= 2;
+  }
+
+  tri_indices[num_tris].set(ip1, ip2, ip3);
+  num_tris++;
+
+  return BVH_OK;
+}
+
+template<typename BV>
 int BVHModel<BV>::addSubModel(const std::vector<Vec3f>& ps)
 {
   if(build_state == BVH_BUILD_STATE_PROCESSED)
@@ -640,6 +684,31 @@ int BVHModel<BV>::memUsage(int msg) const
   }
 
   return BVH_OK;
+}
+
+template<typename BV>
+void BVHModel<BV>::setupBVH (
+    int _num_vertices, Vec3f* _vertices,
+    int _num_tris, Triangle* _tri_indices,
+    int _num_bvs, BVNode<BV>* _bvs)
+{
+  if (vertices          != NULL) delete [] vertices;
+  if (tri_indices       != NULL) delete [] tri_indices;
+  if (bvs               != NULL) delete [] bvs;
+
+  if (prev_vertices     != NULL) delete [] prev_vertices;
+  if (primitive_indices != NULL) delete [] primitive_indices;
+
+  num_vertices = num_vertices_allocated = _num_vertices;
+  vertices = _vertices;
+  num_tris = num_tris_allocated = _num_tris;
+  tri_indices = _tri_indices;
+  num_bvs = num_bvs_allocated = _num_bvs;
+  bvs = _bvs;
+
+  num_vertex_updated = 0;
+  prev_vertices     = NULL;
+  primitive_indices = NULL;
 }
 
 

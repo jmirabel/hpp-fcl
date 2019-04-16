@@ -151,6 +151,7 @@ inline void buildMesh (const fcl::Vec3f & scale,
     unsigned oldNbTriangles = (unsigned) mesh->num_tris;
     
     // Add the vertices
+    tv.vertices_.reserve (tv.vertices_.size() + input_mesh->mNumVertices);
     for (uint32_t j = 0; j < input_mesh->mNumVertices; j++)
     {
       aiVector3D p = input_mesh->mVertices[j];
@@ -161,6 +162,7 @@ inline void buildMesh (const fcl::Vec3f & scale,
     }
     
     // add the indices
+    tv.vertices_.reserve (tv.triangles_.size() + input_mesh->mNumFaces);
     for (uint32_t j = 0; j < input_mesh->mNumFaces; j++)
     {
       aiFace& face = input_mesh->mFaces[j];

@@ -59,6 +59,11 @@ class BVHModel : public CollisionGeometry,
 {
 
 public:
+  struct Serializer {
+    static void load (BVHModel<BV>& bv) {
+    }
+  };
+
   /// @brief Model type described by the instance
   BVHModelType getModelType() const
   {
@@ -95,12 +100,12 @@ public:
   /// @brief deconstruction, delete mesh data related.
   ~BVHModel()
   {
-    delete [] vertices;
-    delete [] tri_indices;
-    delete [] bvs;
+    if (vertices          != NULL) delete [] vertices;
+    if (tri_indices       != NULL) delete [] tri_indices;
+    if (bvs               != NULL) delete [] bvs;
 
-    delete [] prev_vertices;
-    delete [] primitive_indices;
+    if (prev_vertices     != NULL) delete [] prev_vertices;
+    if (primitive_indices != NULL) delete [] primitive_indices;
   }
 
   /// @brief We provide getBV() and getNumBVs() because BVH may be compressed (in future), so we must provide some flexibility here
@@ -140,6 +145,9 @@ public:
 
   /// @brief Add one triangle in the new BVH model
   int addTriangle(const Vec3f& p1, const Vec3f& p2, const Vec3f& p3);
+
+  /// @brief Add one triangle whose points have already been inserted.
+  int addTriangle(const std::size_t& ip1, const std::size_t& ip2, const std::size_t& ip3);
 
   /// @brief Add a set of triangles in the new BVH model
   int addSubModel(const std::vector<Vec3f>& ps, const std::vector<Triangle>& ts);
@@ -243,6 +251,11 @@ public:
 
     return C.trace() * Matrix3f::Identity() - C;
   }
+
+  // Setup object for serialization
+  void setupBVH (int num_vertices, Vec3f* vertices,
+      int num_tris, Triangle* tri_indices,
+      int num_bvs, BVNode<BV>* bvs);
 
 public:
   /// @brief Geometry point data

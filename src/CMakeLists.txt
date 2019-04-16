@@ -79,6 +79,7 @@ set(${LIBRARY_NAME}_SOURCES
   collision_func_matrix.cpp
   collision_utility.cpp
   mesh_loader/loader.cpp
+  mesh_loader/serialization.cpp
   )
 
 # Declare boost include directories
@@ -98,3 +99,12 @@ ENDIF(OCTOMAP_FOUND)
 
 
 install(TARGETS ${LIBRARY_NAME} DESTINATION ${CMAKE_INSTALL_LIBDIR})
+
+add_executable(hpp-fcl-optimize hpp-fcl-optimize.cc)
+TARGET_LINK_LIBRARIES(hpp-fcl-optimize ${LIBRARY_NAME} ${Boost_LIBRARIES})
+PKG_CONFIG_USE_DEPENDENCY(${LIBRARY_NAME} assimp)
+IF(OCTOMAP_FOUND)
+  PKG_CONFIG_USE_DEPENDENCY(${LIBRARY_NAME} octomap)
+ENDIF(OCTOMAP_FOUND)
+
+install(TARGETS hpp-fcl-optimize DESTINATION ${CMAKE_INSTALL_BINDIR})

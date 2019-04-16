@@ -36,6 +36,7 @@
 
 #include <hpp/fcl/mesh_loader/loader.h>
 #include <hpp/fcl/mesh_loader/assimp.h>
+#include <hpp/fcl/mesh_loader/serialization.h>
 
 #include <hpp/fcl/BV/BV.h>
 
@@ -57,6 +58,7 @@ namespace fcl {
   template <typename BV>
   CollisionGeometryPtr_t _load (const std::string& filename, const Vec3f& scale)
   {
+    // TODO If extension is hppfcl or hppfclb, the use deserialisation.
     boost::shared_ptr < BVHModel<BV> > polyhedron (new BVHModel<BV>);
     loadPolyhedronFromResource (filename, scale, polyhedron);
     return polyhedron;

@@ -67,9 +67,9 @@ set (RUN_TESTS TRUE CACHE BOOL "compile and run unit tests")
 
 # Required dependencies
 if (RUN_TESTS)
-  set(BOOST_COMPONENTS thread date_time filesystem system unit_test_framework)
+  set(BOOST_COMPONENTS thread program_options serialization date_time filesystem system unit_test_framework)
 else ()
-  set(BOOST_COMPONENTS thread date_time system)
+  set(BOOST_COMPONENTS thread program_options serialization date_time system)
 endif ()
 
 search_for_boost()
@@ -151,6 +151,7 @@ SET(${PROJECT_NAME}_HEADERS
   include/hpp/fcl/fwd.hh
   include/hpp/fcl/mesh_loader/assimp.h
   include/hpp/fcl/mesh_loader/loader.h
+  include/hpp/fcl/mesh_loader/serialization.h
   )
 
 add_subdirectory(src)
