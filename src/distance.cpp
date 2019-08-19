@@ -39,6 +39,11 @@
 #include <hpp/fcl/distance_func_matrix.h>
 #include <hpp/fcl/narrowphase/narrowphase.h>
 
+#ifdef HPP_FCL_WITH_SCH_CORE
+# include <sch/CD/CD_Pair.h>
+# include <sch/S_Object/S_Object.h>
+#endif
+
 #include <iostream>
 
 namespace hpp
@@ -52,6 +57,64 @@ DistanceFunctionMatrix<GJKSolver>& getDistanceFunctionLookTable()
   static DistanceFunctionMatrix<GJKSolver> table;
   return table;
 }
+
+#ifdef HPP_FCL_WITH_SCH_CORE
+
+FCL_REAL sch_distance(
+                    const CollisionGeometry* _o1, const Transform3f& tf1,
+                    const CollisionGeometry* _o2, const Transform3f& tf2,
+                    const DistanceRequest& request,
+                    DistanceResult& result)
+{
+  typedef ::sch::S_Object S_Object;
+  S_Object* o1 = dynamic_cast< S_Object*> (const_cast<CollisionGeometry*>(_o1));
+  S_Object* o2 = dynamic_cast< S_Object*> (const_cast<CollisionGeometry*>(_o2));
+
+  const Vec3f& t1 (tf1.getTranslation()),
+               t2 (tf2.getTranslation());
+  const Quaternion3f& q1 (tf1.getQuatRotation()),
+                      q2 (tf2.getQuatRotation());
+
+  o1->setPosition (t1[0], t1[1], t1[2]);
+  o1->setOrientation (q1.x(), q1.y(), q1.z(), q1.w());
+
+  o2->setPosition (t2[0], t2[1], t2[2]);
+  o2->setOrientation (q2.x(), q2.y(), q2.z(), q2.w());
+
+  ::sch::CD_Pair pair (o1, o2);
+  pair.setRelativePrecision(1e-4);
+  // The bsd version of SCH does not include the EPA algorithm (because it is GPL)
+  FCL_REAL squared_dist = pair.getDistance();
+  result.o1 = _o1;
+  result.o2 = _o2;
+  if (squared_dist > 0) {
+    result.min_distance = std::sqrt(squared_dist);
+  } else {
+    result.min_distance = - std::sqrt(- squared_dist);
+  }
+  if (request.enable_nearest_points) {
+#ifdef SCH_BUILD_BSD
+    if (squared_dist == 0) {
+      //std::cerr << "penetration points are not computed with SCH with GPL license." << std::endl;
+      result.nearest_points[0].setConstant (std::numeric_limits<FCL_REAL>::quiet_nan());
+      result.nearest_points[1].setConstant (std::numeric_limits<FCL_REAL>::quiet_nan());
+      result.normal.setConstant (std::numeric_limits<FCL_REAL>::quiet_nan());
+    } else
+#endif
+    {
+      ::sch::Point3 p1, p2, u;
+      pair.getClosestPoints (p1, p2);
+      u = p2 - p1;
+
+      result.nearest_points[0] << p1[0], p1[1], p1[2];
+      result.nearest_points[1] << p2[0], p2[1], p2[2];
+      result.normal << u[0], u[1], u[2];
+    }
+  }
+  return result.min_distance;
+}
+#endif
+
 
 template<typename NarrowPhaseSolver>
 FCL_REAL distance(const CollisionObject* o1, const CollisionObject* o2, const NarrowPhaseSolver* nsolver,
@@ -73,13 +136,28 @@ FCL_REAL distance(const CollisionGeometry* o1, const Transform3f& tf1,
 
   const DistanceFunctionMatrix<NarrowPhaseSolver>& looktable = getDistanceFunctionLookTable<NarrowPhaseSolver>();
 
-  OBJECT_TYPE object_type1 = o1->getObjectType();
-  NODE_TYPE node_type1 = o1->getNodeType();
-  OBJECT_TYPE object_type2 = o2->getObjectType();
-  NODE_TYPE node_type2 = o2->getNodeType();
+  int object_type1 = o1->getObjectType() | OT_MASK;
+  int object_type2 = o2->getObjectType() | OT_MASK;
+  int node_type1 = o1->getNodeType();
+  int node_type2 = o2->getNodeType();
 
   FCL_REAL res = std::numeric_limits<FCL_REAL>::max();
 
+#ifdef HPP_FCL_WITH_SCH_CORE
+  bool has_sch1 = o1->getObjectType() & OT_SCH;
+  bool has_sch2 = o2->getObjectType() & OT_SCH;
+  if (has_sch1 && has_sch2
+      && ( object_type1 != OT_GEOM
+        || object_type2 != OT_GEOM
+        || (node_type1 == GEOM_BOX && node_type2 != GEOM_SPHERE)
+        || (node_type1 != GEOM_SPHERE && node_type2 == GEOM_BOX)
+        )
+      )
+  {
+    res = sch_distance (o1, tf1, o2, tf2, request, result);
+  }
+  else
+#endif
   if(object_type1 == OT_GEOM && object_type2 == OT_BVH)
   {
     if(!looktable.distance_matrix[node_type2][node_type1])

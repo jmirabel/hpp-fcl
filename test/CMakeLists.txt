@@ -15,6 +15,10 @@ macro(add_fcl_test test_name)
     ${Boost_LIBRARIES}
     )
   add_test(${test_name} ${EXECUTABLE_OUTPUT_PATH}/${test_name})
+  if(SCH_CORE_FOUND)
+    pkg_config_use_dependency(${test_name} sch-core)
+  endif()
+  target_compile_options (${test_name} PUBLIC "-DHPP_FCL_WITH_SCH_CORE")
 endmacro(add_fcl_test)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})

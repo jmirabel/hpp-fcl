@@ -50,6 +50,10 @@
 
 #include "utility.h"
 
+#ifdef HPP_FCL_WITH_SCH_CORE
+# include <hpp/fcl/sch/object.h>
+#endif
+
 typedef boost::shared_ptr <hpp::fcl::CollisionGeometry> CollisionGeometryPtr_t;
 
 using hpp::fcl::Transform3f;
@@ -59,11 +63,8 @@ using hpp::fcl::DistanceResult;
 using hpp::fcl::DistanceRequest;
 using hpp::fcl::GST_INDEP;
 
-BOOST_AUTO_TEST_CASE(distance_box_box_1)
+void distance_box_box_1 (CollisionGeometryPtr_t s1, CollisionGeometryPtr_t s2)
 {
-  CollisionGeometryPtr_t s1 (new hpp::fcl::Box (6, 10, 2));
-  CollisionGeometryPtr_t s2 (new hpp::fcl::Box (2, 2, 2));
-
   Transform3f tf1;
   Transform3f tf2 (Vec3f(25, 20, 5));
 
@@ -101,10 +102,24 @@ BOOST_AUTO_TEST_CASE(distance_box_box_1)
   BOOST_CHECK_CLOSE (p2 [2], 4, 1e-6);
 }
 
-BOOST_AUTO_TEST_CASE(distance_box_box_2)
+BOOST_AUTO_TEST_CASE(distance_box_box_1_fcl)
 {
   CollisionGeometryPtr_t s1 (new hpp::fcl::Box (6, 10, 2));
   CollisionGeometryPtr_t s2 (new hpp::fcl::Box (2, 2, 2));
+  distance_box_box_1 (s1, s2);
+}
+
+#ifdef HPP_FCL_WITH_SCH_CORE
+BOOST_AUTO_TEST_CASE(distance_box_box_1_sch)
+{
+  CollisionGeometryPtr_t s1 (new hpp::fcl::sch::S_Box (6, 10, 2));
+  CollisionGeometryPtr_t s2 (new hpp::fcl::sch::S_Box (2, 2, 2));
+  distance_box_box_1 (s1, s2);
+}
+#endif
+
+void distance_box_box_2 (CollisionGeometryPtr_t s1, CollisionGeometryPtr_t s2)
+{
   static double pi = M_PI;
   Transform3f tf1;
   Transform3f tf2 (hpp::fcl::makeQuat (cos (pi/8), sin(pi/8)/sqrt(3),
@@ -142,10 +157,24 @@ BOOST_AUTO_TEST_CASE(distance_box_box_2)
   BOOST_CHECK_CLOSE (p2 [2], -1.62123444 + 10, 1e-4);
 }
 
-BOOST_AUTO_TEST_CASE(distance_box_box_3)
+BOOST_AUTO_TEST_CASE(distance_box_box_2_fcl)
 {
-  CollisionGeometryPtr_t s1 (new hpp::fcl::Box (1, 1, 1));
-  CollisionGeometryPtr_t s2 (new hpp::fcl::Box (1, 1, 1));
+  CollisionGeometryPtr_t s1 (new hpp::fcl::Box (6, 10, 2));
+  CollisionGeometryPtr_t s2 (new hpp::fcl::Box (2, 2, 2));
+  distance_box_box_2 (s1, s2);
+}
+
+#ifdef HPP_FCL_WITH_SCH_CORE
+BOOST_AUTO_TEST_CASE(distance_box_box_2_sch)
+{
+  CollisionGeometryPtr_t s1 (new hpp::fcl::sch::S_Box (6, 10, 2));
+  CollisionGeometryPtr_t s2 (new hpp::fcl::sch::S_Box (2, 2, 2));
+  distance_box_box_2 (s1, s2);
+}
+#endif
+
+void distance_box_box_3 (CollisionGeometryPtr_t s1, CollisionGeometryPtr_t s2)
+{
   static double pi = M_PI;
   Transform3f tf1 (hpp::fcl::makeQuat (cos (pi/8), 0, 0, sin (pi/8)),
 		   Vec3f (-2, 1, .5));
@@ -217,3 +246,19 @@ BOOST_AUTO_TEST_CASE(distance_box_box_3)
   BOOST_CHECK_CLOSE (p2 [2], p2Moved [2], 1e-4);
   
 }
+
+BOOST_AUTO_TEST_CASE(distance_box_box_3_fcl)
+{
+  CollisionGeometryPtr_t s1 (new hpp::fcl::Box (1, 1, 1));
+  CollisionGeometryPtr_t s2 (new hpp::fcl::Box (1, 1, 1));
+  distance_box_box_3 (s1, s2);
+}
+
+#ifdef HPP_FCL_WITH_SCH_CORE
+BOOST_AUTO_TEST_CASE(distance_box_box_3_sch)
+{
+  CollisionGeometryPtr_t s1 (new hpp::fcl::sch::S_Box (1, 1, 1));
+  CollisionGeometryPtr_t s2 (new hpp::fcl::sch::S_Box (1, 1, 1));
+  distance_box_box_3 (s1, s2);
+}
+#endif

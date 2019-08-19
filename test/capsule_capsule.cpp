@@ -43,22 +43,24 @@
 #define CHECK_CLOSE_TO_0(x, eps) BOOST_CHECK_CLOSE ((x + 1.0), (1.0), (eps))
 
 #include <cmath>
+#include <hpp/fcl/fwd.hh>
 #include <hpp/fcl/distance.h>
 #include <hpp/fcl/math/transform.h>
 #include <hpp/fcl/collision.h>
 #include <hpp/fcl/collision_object.h>
 #include <hpp/fcl/shape/geometric_shapes.h>
 
+#ifdef HPP_FCL_WITH_SCH_CORE
+#include <hpp/fcl/sch/object.h>
+#endif
+
 #include "utility.h"
 
 using namespace hpp::fcl;
-typedef boost::shared_ptr <CollisionGeometry> CollisionGeometryPtr_t;
+using hpp::fcl::sch::S_Capsule;
 
-BOOST_AUTO_TEST_CASE(distance_capsulecapsule_origin)
+void distance_capsulecapsule_origin (CollisionGeometryPtr_t s1, CollisionGeometryPtr_t s2)
 {
-  CollisionGeometryPtr_t s1 (new Capsule (5, 10));
-  CollisionGeometryPtr_t s2 (new Capsule (5, 10));
-
   Transform3f tf1;
   Transform3f tf2 (Vec3f(20.1, 0,0));
 
@@ -81,11 +83,24 @@ BOOST_AUTO_TEST_CASE(distance_capsulecapsule_origin)
   BOOST_CHECK_CLOSE(distanceResult.min_distance, 10.1, 1e-6);
 }
 
-BOOST_AUTO_TEST_CASE(distance_capsulecapsule_transformXY)
+BOOST_AUTO_TEST_CASE(distance_capsulecapsule_origin_fcl)
 {
   CollisionGeometryPtr_t s1 (new Capsule (5, 10));
   CollisionGeometryPtr_t s2 (new Capsule (5, 10));
+  distance_capsulecapsule_origin (s1, s2);
+}
 
+#ifdef HPP_FCL_WITH_SCH_CORE
+BOOST_AUTO_TEST_CASE(distance_capsulecapsule_origin_sch)
+{
+  CollisionGeometryPtr_t s1 (new S_Capsule (5, 10));
+  CollisionGeometryPtr_t s2 (new S_Capsule (5, 10));
+  distance_capsulecapsule_origin (s1, s2);
+}
+#endif
+
+void distance_capsulecapsule_transformXY (CollisionGeometryPtr_t s1, CollisionGeometryPtr_t s2)
+{
   Transform3f tf1;
   Transform3f tf2 (Vec3f(20, 20,0));
 
@@ -109,11 +124,23 @@ BOOST_AUTO_TEST_CASE(distance_capsulecapsule_transformXY)
   BOOST_CHECK_CLOSE(distanceResult.min_distance, expected, 1e-6);
 }
 
-BOOST_AUTO_TEST_CASE(distance_capsulecapsule_transformZ)
+BOOST_AUTO_TEST_CASE(distance_capsulecapsule_transformXY_fcl)
 {
   CollisionGeometryPtr_t s1 (new Capsule (5, 10));
   CollisionGeometryPtr_t s2 (new Capsule (5, 10));
+}
 
+#ifdef HPP_FCL_WITH_SCH_CORE
+BOOST_AUTO_TEST_CASE(distance_capsulecapsule_transformXY_sch)
+{
+  CollisionGeometryPtr_t s1 (new Capsule (5, 10));
+  CollisionGeometryPtr_t s2 (new Capsule (5, 10));
+  distance_capsulecapsule_transformXY (s1, s2);
+}
+#endif
+
+void distance_capsulecapsule_transformZ (CollisionGeometryPtr_t s1, CollisionGeometryPtr_t s2)
+{
   Transform3f tf1;
   Transform3f tf2 (Vec3f(0,0,20.1));
 
@@ -136,12 +163,24 @@ BOOST_AUTO_TEST_CASE(distance_capsulecapsule_transformZ)
   BOOST_CHECK_CLOSE(distanceResult.min_distance, 0.1, 1e-6);
 }
 
-
-BOOST_AUTO_TEST_CASE(distance_capsulecapsule_transformZ2)
+BOOST_AUTO_TEST_CASE(distance_capsulecapsule_transformZ_fcl)
 {
   CollisionGeometryPtr_t s1 (new Capsule (5, 10));
   CollisionGeometryPtr_t s2 (new Capsule (5, 10));
+  distance_capsulecapsule_transformZ (s1, s2);
+}
 
+#ifdef HPP_FCL_WITH_SCH_CORE
+BOOST_AUTO_TEST_CASE(distance_capsulecapsule_transformZ_sch)
+{
+  CollisionGeometryPtr_t s1 (new S_Capsule (5, 10));
+  CollisionGeometryPtr_t s2 (new S_Capsule (5, 10));
+  distance_capsulecapsule_transformZ (s1, s2);
+}
+#endif
+
+void distance_capsulecapsule_transformZ2 (CollisionGeometryPtr_t s1, CollisionGeometryPtr_t s2)
+{
   Transform3f tf1;
   Transform3f tf2 (makeQuat (sqrt (2)/2, 0, sqrt (2)/2, 0),
 		   Vec3f(0,0,25.1));
@@ -174,4 +213,20 @@ BOOST_AUTO_TEST_CASE(distance_capsulecapsule_transformZ2)
   CHECK_CLOSE_TO_0 (p2 [0], 1e-4);
   CHECK_CLOSE_TO_0 (p2 [1], 1e-4);
   BOOST_CHECK_CLOSE (p2 [2], 20.1, 1e-4);
+}
+
+#ifdef HPP_FCL_WITH_SCH_CORE
+BOOST_AUTO_TEST_CASE(distance_capsulecapsule_transformZ2_fcl)
+{
+  CollisionGeometryPtr_t s1 (new Capsule (5, 10));
+  CollisionGeometryPtr_t s2 (new Capsule (5, 10));
+  distance_capsulecapsule_transformZ2 (s1, s2);
+}
+#endif
+
+BOOST_AUTO_TEST_CASE(distance_capsulecapsule_transformZ2_sch)
+{
+  CollisionGeometryPtr_t s1 (new S_Capsule (5, 10));
+  CollisionGeometryPtr_t s2 (new S_Capsule (5, 10));
+  distance_capsulecapsule_transformZ2 (s1, s2);
 }

@@ -93,6 +93,14 @@ else()
   message(STATUS "FCL does not use Octomap")
 endif()
 
+add_optional_dependency("sch-core")
+if(SCH_CORE_FOUND)
+  add_definitions(-DHPP_FCL_USE_SCH_CORE)
+  message(STATUS "FCL uses SCH")
+else()
+  message(STATUS "FCL does not use SCH")
+endif()
+
 ADD_REQUIRED_DEPENDENCY("assimp >= 2.0")
 if(ASSIMP_FOUND)
   if (NOT ${ASSIMP_VERSION} VERSION_LESS "2.0.1150")
@@ -149,6 +157,8 @@ SET(${PROJECT_NAME}_HEADERS
   include/hpp/fcl/fwd.hh
   include/hpp/fcl/mesh_loader/assimp.h
   include/hpp/fcl/mesh_loader/loader.h
+  include/hpp/fcl/sch/assimp.h
+  include/hpp/fcl/sch/object.h
   )
 
 add_subdirectory(src)
@@ -163,5 +173,8 @@ IF(HPP_FCL_HAVE_OCTOMAP)
   PKG_CONFIG_APPEND_CFLAGS(
     "-DHPP_FCL_HAVE_OCTOMAP -DFCL_HAVE_OCTOMAP -DOCTOMAP_MAJOR_VERSION=${OCTOMAP_MAJOR_VERSION} -DOCTOMAP_MINOR_VERSION=${OCTOMAP_MINOR_VERSION} -DOCTOMAP_PATCH_VERSION=${OCTOMAP_PATCH_VERSION}")
 ENDIF(HPP_FCL_HAVE_OCTOMAP)
+IF(SCH_CORE_FOUND)
+  PKG_CONFIG_APPEND_CFLAGS("-DHPP_FCL_USE_SCH_CORE")
+ENDIF(SCH_CORE_FOUND)
 
 setup_hpp_project_finalize()

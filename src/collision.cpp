@@ -40,6 +40,11 @@
 #include <hpp/fcl/collision_func_matrix.h>
 #include <hpp/fcl/narrowphase/narrowphase.h>
 
+#ifdef HPP_FCL_WITH_SCH_CORE
+# include <sch/CD/CD_Pair.h>
+# include <sch/S_Object/S_Object.h>
+#endif
+
 #include <iostream>
 
 namespace hpp
@@ -81,6 +86,52 @@ void invertResults(CollisionResult& result)
     }
 }
 
+#ifdef HPP_FCL_WITH_SCH_CORE
+
+std::size_t sch_collide(
+                    const CollisionGeometry* _o1, const Transform3f& tf1,
+                    const CollisionGeometry* _o2, const Transform3f& tf2,
+                    const CollisionRequest& request,
+                    CollisionResult& result)
+{
+  typedef ::sch::S_Object S_Object;
+  S_Object* o1 = dynamic_cast< S_Object*> (const_cast<CollisionGeometry*>(_o1));
+  S_Object* o2 = dynamic_cast< S_Object*> (const_cast<CollisionGeometry*>(_o2));
+
+  const Vec3f& t1 (tf1.getTranslation()),
+               t2 (tf2.getTranslation());
+  const Quaternion3f& q1 (tf1.getQuatRotation()),
+                      q2 (tf2.getQuatRotation());
+
+  o1->setPosition (t1[0], t1[1], t1[2]);
+  o1->setOrientation (q1.x(), q1.y(), q1.z(), q1.w());
+
+  o2->setPosition (t2[0], t2[1], t2[2]);
+  o2->setOrientation (q2.x(), q2.y(), q2.z(), q2.w());
+
+  ::sch::CD_Pair pair (o1, o2);
+  bool collision = pair.isInCollision();
+  if (collision && request.enable_contact) {
+    Contact contact (_o1, _o2, Contact::NONE, Contact::NONE);
+    // The bsd version does not include the EPA algorithm (because it is GPL)
+    // so there is no contact point
+#ifndef SCH_BUILD_BSD
+    ::sch::Point3 p1, p2, u;
+    contact.penetration_depth = - std::sqrt (-pair.getClosestPoints (p1, p2));
+    u = p2 - p1;
+    contact.pos << p1[0], p1[1], p1[2];
+    contact.normal << u[0], u[1], u[2];
+#endif
+    result.addContact (contact);
+    result.distance_lower_bound = 0;
+  } else {
+    if (request.enable_distance_lower_bound)
+      result.distance_lower_bound = pair.getDistanceWithoutPenetrationDepth();
+  }
+  return collision ? 1 : 0;
+}
+#endif
+
 template<typename NarrowPhaseSolver>
 std::size_t collide(const CollisionGeometry* o1, const Transform3f& tf1,
                     const CollisionGeometry* o2, const Transform3f& tf2,
@@ -102,12 +153,21 @@ std::size_t collide(const CollisionGeometry* o1, const Transform3f& tf1,
   }
   else
   {
-    OBJECT_TYPE object_type1 = o1->getObjectType();
-    OBJECT_TYPE object_type2 = o2->getObjectType();
-    NODE_TYPE node_type1 = o1->getNodeType();
-    NODE_TYPE node_type2 = o2->getNodeType();
+    int object_type1 = o1->getObjectType() | OT_MASK;
+    int object_type2 = o2->getObjectType() | OT_MASK;
+    int node_type1 = o1->getNodeType();
+    int node_type2 = o2->getNodeType();
   
-    if(object_type1 == OT_GEOM && object_type2 == OT_BVH)
+#ifdef HPP_FCL_WITH_SCH_CORE
+    bool has_sch1 = o1->getObjectType() & OT_SCH;
+    bool has_sch2 = o2->getObjectType() & OT_SCH;
+    if (has_sch1 && has_sch2 && (object_type1 != OT_GEOM || object_type2 != OT_GEOM))
+    {
+      res = sch_collide (o1, tf1, o2, tf2, request, result);
+    }
+    else
+#endif
+      if(object_type1 == OT_GEOM && object_type2 == OT_BVH)
     {  
       if(!looktable.collision_matrix[node_type2][node_type1])
       {

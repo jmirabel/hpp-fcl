@@ -50,7 +50,15 @@ namespace fcl
 {
 
 /// @brief object type: BVH (mesh, points), basic geometry, octree
-enum OBJECT_TYPE {OT_UNKNOWN, OT_BVH, OT_GEOM, OT_OCTREE, OT_COUNT};
+enum OBJECT_TYPE {
+      OT_UNKNOWN = 0
+    , OT_BVH     = 1
+    , OT_GEOM    = 2
+    , OT_OCTREE  = 3
+    , OT_MASK    = 4 /// Mask to get the object type
+    , OT_FCL     = 8 /// Flag to recognize a FCL object
+    , OT_SCH     = 16 /// Flag to recognize a SCH object
+};
 
 /// @brief traversal node type: bounding volume (AABB, OBB, RSS, kIOS, OBBRSS, KDOP16, KDOP18, kDOP24), basic shape (box, sphere, capsule, cone, cylinder, convex, plane, triangle), and octree
 enum NODE_TYPE {BV_UNKNOWN, BV_AABB, BV_OBB, BV_RSS, BV_kIOS, BV_OBBRSS, BV_KDOP16, BV_KDOP18, BV_KDOP24,

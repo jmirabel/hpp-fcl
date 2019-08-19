@@ -92,7 +92,7 @@ public:
   BVHModel(const BVHModel& other);
 
   /// @brief deconstruction, delete mesh data related.
-  ~BVHModel()
+  virtual ~BVHModel()
   {
     delete [] vertices;
     delete [] tri_indices;
@@ -125,7 +125,7 @@ public:
   }
 
   /// @brief Get the object type: it is a BVH
-  OBJECT_TYPE getObjectType() const { return OT_BVH; }
+  virtual OBJECT_TYPE getObjectType() const { return OT_BVH; }
 
   /// @brief Get the BV type: default is unknown
   NODE_TYPE getNodeType() const { return BV_UNKNOWN; }
