@@ -82,6 +82,13 @@ set(${LIBRARY_NAME}_SOURCES
   mesh_loader/loader.cpp
   )
 
+IF(SCH_CORE_FOUND)
+  set(${LIBRARY_NAME}_SOURCES
+    ${${LIBRARY_NAME}_SOURCES}
+    sch/assimp.cpp
+    )
+ENDIF()
+
 # Declare boost include directories
 include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 link_directories(${Boost_LIBRARY_DIRS})
