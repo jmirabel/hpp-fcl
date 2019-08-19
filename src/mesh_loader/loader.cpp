@@ -38,6 +38,20 @@
 #include <hpp/fcl/mesh_loader/assimp.h>
 
 #include <hpp/fcl/BV/BV.h>
+#include <hpp/fcl/shape/geometric_shapes.h>
+#ifdef HPP_FCL_WITH_SCH_CORE
+# include <hpp/fcl/sch/object.h>
+#endif
+
+#ifdef HPP_FCL_WITH_SCH_CORE
+  typedef hpp::fcl::sch::S_Box     Box_t;
+  typedef hpp::fcl::sch::S_Capsule Capsule_t;
+  typedef hpp::fcl::sch::S_Sphere  Sphere_t;
+#else
+  typedef hpp::fcl::Box     Box_t;
+  typedef hpp::fcl::Capsule Capsule_t;
+  typedef hpp::fcl::Sphere  Sphere_t;
+#endif
 
 namespace hpp
 {
@@ -75,6 +89,46 @@ namespace fcl {
       default:
         throw std::invalid_argument("Unhandled bouding volume type.");
     }
+  }
+
+  CollisionGeometryPtr_t MeshLoader::makeBox (const Vec3f& side)
+  {
+    return CollisionGeometryPtr_t (new Box_t (side));
+  }
+
+  CollisionGeometryPtr_t MeshLoader::makeCapsule (const FCL_REAL& radius, const FCL_REAL& lz)
+  {
+    return CollisionGeometryPtr_t (new Capsule_t (radius, lz));
+  }
+
+  CollisionGeometryPtr_t MeshLoader::makeCone (const FCL_REAL& radius, const FCL_REAL& lz)
+  {
+    return CollisionGeometryPtr_t (new Cone (radius, lz));
+  }
+
+  CollisionGeometryPtr_t MeshLoader::makeCylinder (const FCL_REAL& radius, const FCL_REAL& lz)
+  {
+    return CollisionGeometryPtr_t (new Cylinder (radius, lz));
+  }
+
+  CollisionGeometryPtr_t MeshLoader::makeHalfspace (const Vec3f& normal, const FCL_REAL& d)
+  {
+    return CollisionGeometryPtr_t (new Halfspace (normal, d));
+  }
+
+  CollisionGeometryPtr_t MeshLoader::makePlane (const Vec3f& normal, const FCL_REAL& d)
+  {
+    return CollisionGeometryPtr_t (new Plane (normal, d));
+  }
+
+  CollisionGeometryPtr_t MeshLoader::makeSphere (const FCL_REAL& radius)
+  {
+    return CollisionGeometryPtr_t (new Sphere_t (radius));
+  }
+
+  CollisionGeometryPtr_t MeshLoader::makeTriangleP (const Vec3f& a, const Vec3f& b, const Vec3f& c)
+  {
+    return CollisionGeometryPtr_t (new TriangleP (a, b, c));
   }
 
   CollisionGeometryPtr_t CachedMeshLoader::load (const std::string& filename,

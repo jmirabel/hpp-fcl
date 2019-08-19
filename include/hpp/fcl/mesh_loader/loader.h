@@ -66,6 +66,24 @@ namespace fcl {
       virtual CollisionGeometryPtr_t load (const std::string& filename,
           const Vec3f& scale);
 
+      virtual CollisionGeometryPtr_t makeBox (const Vec3f& side);
+
+      virtual CollisionGeometryPtr_t makeCapsule (const FCL_REAL& radius, const FCL_REAL& lz);
+
+      virtual CollisionGeometryPtr_t makeCone (const FCL_REAL& radius, const FCL_REAL& lz);
+
+      virtual CollisionGeometryPtr_t makeCylinder (const FCL_REAL& radius, const FCL_REAL& lz);
+
+      /// The set \f$ {x | normal \times x > d } \f$
+      virtual CollisionGeometryPtr_t makeHalfspace (const Vec3f& normal, const FCL_REAL& d);
+
+      /// The set \f$ {x | normal \times x = d } \f$
+      virtual CollisionGeometryPtr_t makePlane (const Vec3f& normal, const FCL_REAL& d);
+
+      virtual CollisionGeometryPtr_t makeSphere (const FCL_REAL& radius);
+
+      virtual CollisionGeometryPtr_t makeTriangleP (const Vec3f& a, const Vec3f& b, const Vec3f& c);
+
       MeshLoader (const NODE_TYPE& bvType = BV_OBBRSS) : bvType_ (bvType) {}
 
     private:
