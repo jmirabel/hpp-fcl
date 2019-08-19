@@ -66,6 +66,9 @@ namespace fcl {
       virtual CollisionGeometryPtr_t load (const std::string& filename,
           const Vec3f& scale);
 
+      virtual CollisionGeometryPtr_t loadConvex (const std::string& filename,
+          const Vec3f& scale);
+
       virtual CollisionGeometryPtr_t makeBox (const Vec3f& side);
 
       virtual CollisionGeometryPtr_t makeCapsule (const FCL_REAL& radius, const FCL_REAL& lz);
@@ -114,12 +117,16 @@ namespace fcl {
       virtual CollisionGeometryPtr_t load (const std::string& filename,
           const Vec3f& scale);
 
+      virtual CollisionGeometryPtr_t loadConvex (const std::string& filename,
+          const Vec3f& scale);
+
       struct Key {
         std::string filename;
         Vec3f scale;
+        bool convex;
 
-        Key (const std::string& f, const Vec3f& s)
-          : filename (f), scale (s) {}
+        Key (const std::string& f, const Vec3f& s, bool c)
+          : filename (f), scale (s), convex (c) {}
 
         bool operator< (const CachedMeshLoader::Key& b) const;
       };

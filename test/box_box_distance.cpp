@@ -47,8 +47,10 @@
 #include <hpp/fcl/collision.h>
 #include <hpp/fcl/collision_object.h>
 #include <hpp/fcl/shape/geometric_shapes.h>
+#include <hpp/fcl/mesh_loader/loader.h>
 
 #include "utility.h"
+#include "fcl_resources/config.h"
 
 #ifdef HPP_FCL_WITH_SCH_CORE
 # include <hpp/fcl/sch/object.h>
@@ -58,6 +60,7 @@ typedef boost::shared_ptr <hpp::fcl::CollisionGeometry> CollisionGeometryPtr_t;
 
 using hpp::fcl::Transform3f;
 using hpp::fcl::Vec3f;
+using hpp::fcl::Quaternion3f;
 using hpp::fcl::CollisionObject;
 using hpp::fcl::DistanceResult;
 using hpp::fcl::DistanceRequest;
@@ -260,5 +263,68 @@ BOOST_AUTO_TEST_CASE(distance_box_box_3_sch)
   CollisionGeometryPtr_t s1 (new hpp::fcl::sch::S_Box (1, 1, 1));
   CollisionGeometryPtr_t s2 (new hpp::fcl::sch::S_Box (1, 1, 1));
   distance_box_box_3 (s1, s2);
+}
+#endif
+
+#ifdef HPP_FCL_WITH_SCH_CORE
+// Check that a box as a shape and a box as a mesh gives the same results.
+void distance_box_box_4 (CollisionGeometryPtr_t s1, CollisionGeometryPtr_t s2,
+    CollisionGeometryPtr_t s3)
+{
+  Quaternion3f q; q.coeffs().setRandom();
+
+  for (int i = 0; i < 100; ++i) {
+    Transform3f tf1 (q.normalized(), Vec3f::Random ()); q.coeffs().setRandom();
+    Transform3f tf2 (q.normalized(), Vec3f::Random ()); q.coeffs().setRandom();
+
+    CollisionObject o1 (s1, tf1);
+    CollisionObject o2 (s2, tf2);
+    CollisionObject o3 (s3, tf2);
+
+    // Enable computation of nearest points
+    DistanceRequest distanceRequest (true, 0, 0, GST_INDEP);
+    DistanceResult distanceResult1, distanceResult2;
+
+    hpp::fcl::distance (&o1, &o2, distanceRequest, distanceResult1);
+    hpp::fcl::distance (&o1, &o3, distanceRequest, distanceResult2);
+
+    BOOST_TEST_MESSAGE("Applied transformations on two boxes"
+              << "\nT1 = " << tf1.getTranslation().transpose()
+              << "\nR1 = " << tf1.getRotation ()
+              << "\nT2 = " << tf2.getTranslation().transpose()
+              << "\nR2 = " << tf2.getRotation()
+              << "\nClosest points 1:"
+              << "\np1 = " << distanceResult1.nearest_points [0].transpose()
+              << "\np2 = " << distanceResult1.nearest_points [1].transpose()
+              << "\ndistance = " << distanceResult1.min_distance
+              << "\nClosest points 2:"
+              << "\np1 = " << distanceResult2.nearest_points [0].transpose()
+              << "\np2 = " << distanceResult2.nearest_points [1].transpose()
+              << "\ndistance = " << distanceResult2.min_distance
+              << '\n');
+
+    const Vec3f& a1 = distanceResult1.nearest_points [0];
+    const Vec3f& b1 = distanceResult1.nearest_points [1];
+    const Vec3f& a2 = distanceResult2.nearest_points [0];
+    const Vec3f& b2 = distanceResult2.nearest_points [1];
+    BOOST_CHECK_CLOSE(distanceResult1.min_distance, distanceResult2.min_distance, 1e-4);
+    BOOST_CHECK_CLOSE (a1 [0], a2 [0], 1e-4);
+    BOOST_CHECK_CLOSE (a1 [1], a2 [1], 1e-4);
+    BOOST_CHECK_CLOSE (a1 [2], a2 [2], 1e-4);
+    BOOST_CHECK_CLOSE (b1 [0], b2 [0], 1e-4);
+    BOOST_CHECK_CLOSE (b1 [1], b2 [1], 1e-4);
+    BOOST_CHECK_CLOSE (b1 [2], b2 [2], 1e-4);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(distance_box_box_4_sch)
+{
+  hpp::fcl::MeshLoader loader;
+  CollisionGeometryPtr_t s1 (loader.makeBox (Vec3f(1, 1, 1)));
+  CollisionGeometryPtr_t s2 (loader.makeBox (Vec3f(1, 1, 1)));
+  CollisionGeometryPtr_t s3 (loader.loadConvex (TEST_RESOURCES_DIR"/box.stl", Vec3f(1,1,1)));
+
+  BOOST_CHECK (boost::dynamic_pointer_cast<hpp::fcl::sch::S_Box>(s1));
+  distance_box_box_4 (s1, s2, s3);
 }
 #endif

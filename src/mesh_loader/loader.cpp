@@ -41,6 +41,7 @@
 #include <hpp/fcl/shape/geometric_shapes.h>
 #ifdef HPP_FCL_WITH_SCH_CORE
 # include <hpp/fcl/sch/object.h>
+# include <hpp/fcl/sch/assimp.h>
 #endif
 
 #ifdef HPP_FCL_WITH_SCH_CORE
@@ -59,6 +60,8 @@ namespace fcl {
   bool CachedMeshLoader::Key::operator< (const CachedMeshLoader::Key& b) const
   {
     const CachedMeshLoader::Key& a = *this;
+    if (convex == true && b.convex == false) return true;
+    if (convex == false && b.convex == true) return false;
     for (int i = 0; i < 3; ++i) {
       if (a.scale[i] < b.scale[i]) return true;
       else if (a.scale[i] > b.scale[i]) return false;
@@ -70,6 +73,18 @@ namespace fcl {
   CollisionGeometryPtr_t _load (const std::string& filename, const Vec3f& scale)
   {
     boost::shared_ptr < BVHModel<BV> > polyhedron (new BVHModel<BV>);
+    loadPolyhedronFromResource (filename, scale, polyhedron);
+    return polyhedron;
+  }
+
+  template <typename BV>
+  CollisionGeometryPtr_t _loadConvex (const std::string& filename, const Vec3f& scale)
+  {
+#ifdef HPP_FCL_WITH_SCH_CORE
+    boost::shared_ptr < sch::S_Polyhedron<BV> > polyhedron (new sch::S_Polyhedron<BV>);
+#else
+    boost::shared_ptr < BVHModel<BV> > polyhedron (new BVHModel<BV>);
+#endif
     loadPolyhedronFromResource (filename, scale, polyhedron);
     return polyhedron;
   }
@@ -86,6 +101,23 @@ namespace fcl {
       case BV_KDOP16: return _load <KDOP<16> > (filename, scale);
       case BV_KDOP18: return _load <KDOP<18> > (filename, scale);
       case BV_KDOP24: return _load <KDOP<24> > (filename, scale);
+      default:
+        throw std::invalid_argument("Unhandled bouding volume type.");
+    }
+  }
+
+  CollisionGeometryPtr_t MeshLoader::loadConvex (const std::string& filename,
+      const Vec3f& scale)
+  {
+    switch (bvType_) {
+      case BV_AABB  : return _loadConvex <AABB  > (filename, scale);
+      case BV_OBB   : return _loadConvex <OBB   > (filename, scale);
+      case BV_RSS   : return _loadConvex <RSS   > (filename, scale);
+      case BV_kIOS  : return _loadConvex <kIOS  > (filename, scale);
+      case BV_OBBRSS: return _loadConvex <OBBRSS> (filename, scale);
+      case BV_KDOP16: return _loadConvex <KDOP<16> > (filename, scale);
+      case BV_KDOP18: return _loadConvex <KDOP<18> > (filename, scale);
+      case BV_KDOP24: return _loadConvex <KDOP<24> > (filename, scale);
       default:
         throw std::invalid_argument("Unhandled bouding volume type.");
     }
@@ -134,10 +166,24 @@ namespace fcl {
   CollisionGeometryPtr_t CachedMeshLoader::load (const std::string& filename,
       const Vec3f& scale)
   {
-    Key key (filename, scale);
+    Key key (filename, scale, false);
     Cache_t::const_iterator _cached = cache_.find (key);
     if (_cached == cache_.end()) {
       CollisionGeometryPtr_t geom = MeshLoader::load (filename, scale);
+      cache_.insert (std::make_pair(key, geom));
+      return geom;
+    } else {
+      return _cached->second;
+    }
+  }
+
+  CollisionGeometryPtr_t CachedMeshLoader::loadConvex (const std::string& filename,
+      const Vec3f& scale)
+  {
+    Key key (filename, scale, true);
+    Cache_t::const_iterator _cached = cache_.find (key);
+    if (_cached == cache_.end()) {
+      CollisionGeometryPtr_t geom = MeshLoader::loadConvex (filename, scale);
       cache_.insert (std::make_pair(key, geom));
       return geom;
     } else {
