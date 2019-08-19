@@ -74,7 +74,7 @@ inline void loadPolyhedronFromResource (const std::string & resource_path,
   internal::Loader scene;
   scene.load (resource_path);
 
-  internal::meshFromAssimpScene (scale, scene.scene, polyhedron);
+  internal::meshFromAssimpScene (scale, scene.scene, (const boost::shared_ptr < BVHModel<BoundingVolume> > &)polyhedron);
   internal::polyhedronFromAssimpScene (scale, scene.scene, polyhedron.get());
 }
 

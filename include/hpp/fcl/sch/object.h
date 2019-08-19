@@ -58,7 +58,7 @@ class S_Polyhedron : public BVHModel <BV>, public ::sch::S_Polyhedron
 {
 public:
   /// @brief get the type of the object
-  OBJECT_TYPE getObjectType() const { return OT_BVH | OT_FCL | OT_SCH; }
+  OBJECT_TYPE getObjectType() const { return (OBJECT_TYPE) (OT_BVH | OT_FCL | OT_SCH); }
 };
 
 class S_Box : public Box, public ::sch::S_Box
