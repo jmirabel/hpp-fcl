@@ -203,7 +203,7 @@ public:
   /// @brief compute the AABB in world space
   inline void computeAABB()
   {
-    if(isQuatIdentity(t.getQuatRotation()))
+    if(t.getRotation().isIdentity())
     {
       aabb = translate(cgeom->aabb_local, t.getTranslation());
     }
@@ -241,7 +241,7 @@ public:
   }
 
   /// @brief get quaternion rotation of the object
-  inline const Quaternion3f& getQuatRotation() const
+  inline Quaternion3f getQuatRotation() const
   {
     return t.getQuatRotation();
   }

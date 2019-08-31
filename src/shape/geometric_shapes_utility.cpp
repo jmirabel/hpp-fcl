@@ -226,7 +226,7 @@ Halfspace transform(const Halfspace& a, const Transform3f& tf)
   /// where n' = R * n
   ///   and d' = d + n' * T
 
-  Vec3f n = tf.getQuatRotation() * a.n;
+  Vec3f n = tf.getRotation() * a.n;
   FCL_REAL d = a.d + n.dot(tf.getTranslation());
 
   return Halfspace(n, d);
@@ -241,7 +241,7 @@ Plane transform(const Plane& a, const Transform3f& tf)
   /// where n' = R * n
   ///   and d' = d + n' * T
 
-  Vec3f n = tf.getQuatRotation() * a.n;
+  Vec3f n = tf.getRotation() * a.n;
   FCL_REAL d = a.d + n.dot(tf.getTranslation());
 
   return Plane(n, d);
@@ -697,7 +697,7 @@ void computeBV<KDOP<24>, Halfspace>(const Halfspace& s, const Transform3f& tf, K
 template<>
 void computeBV<OBB, Plane>(const Plane& s, const Transform3f& tf, OBB& bv)
 {
-  Vec3f n = tf.getQuatRotation() * s.n;
+  Vec3f n = tf.getRotation() * s.n;
   generateCoordinateSystem(n, bv.axes.col(1), bv.axes.col(2));
   bv.axes.col(0).noalias() = n;
 
@@ -710,7 +710,7 @@ void computeBV<OBB, Plane>(const Plane& s, const Transform3f& tf, OBB& bv)
 template<>
 void computeBV<RSS, Plane>(const Plane& s, const Transform3f& tf, RSS& bv)
 {
-  Vec3f n = tf.getQuatRotation() * s.n;
+  Vec3f n = tf.getRotation() * s.n;
 
   generateCoordinateSystem(n, bv.axes.col(1), bv.axes.col(2));
   bv.axes.col(0).noalias() = n;
