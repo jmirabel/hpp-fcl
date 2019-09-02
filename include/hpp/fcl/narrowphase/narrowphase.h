@@ -65,6 +65,7 @@ namespace fcl
       shape.set (&s1, &s2, tf1, tf2);
   
       details::GJK gjk((unsigned int )gjk_max_iterations, gjk_tolerance);
+      gjk.setDistanceEarlyBreak (gjk_distance_threshold);
       details::GJK::Status gjk_status = gjk.evaluate(shape, -guess);
       if(enable_cached_guess) cached_guess = gjk.getGuessFromSimplex();
     
@@ -94,6 +95,16 @@ namespace fcl
     }
 
     //// @brief intersection checking between one shape and a triangle with transformation
+    /// \param distance if superior to GJKSolver_indep::gjk_distance_threshold,
+    ///                 contains a lower bound to the distance between the shapes.
+    ///                 Otherwise, it is the real distance.
+    /// \param p1, p2 there are three cases:
+    ///               \li If colliding, p1 and p2 returns the same point within the intersection.
+    ///               \li If not colliding and:
+    ///                   \li distance < GJKSolver_indep::gjk_distance_threshold,
+    ///                       then they contains the closest points,
+    ///                   \li distance > GJKSolver_indep::gjk_distance_threshold,
+    ///                       then they are not set.
     /// \return true if the shape are colliding.
     template<typename S>
     bool shapeTriangleInteraction
@@ -116,6 +127,7 @@ namespace fcl
       shape.set (&s, &tri);
   
       details::GJK gjk((unsigned int )gjk_max_iterations, gjk_tolerance);
+      gjk.setDistanceEarlyBreak (gjk_distance_threshold);
       details::GJK::Status gjk_status = gjk.evaluate(shape, -guess);
       if(enable_cached_guess) cached_guess = gjk.getGuessFromSimplex();
 
@@ -140,14 +152,13 @@ namespace fcl
           {
             col = false;
 
-            details::GJK::getClosestPoints (*gjk.getSimplex(), p1, p2);
-            // TODO On degenerated case, the closest point may be wrong
-            // (i.e. an object face normal is colinear to gjk.ray
-            // assert (distance == (w0 - w1).norm());
             distance = gjk.distance;
+            if (distance <= gjk_distance_threshold) {
+              details::GJK::getClosestPoints (*gjk.getSimplex(), p1, p2);
+              p1 = tf1.transform (p1);
+              p2 = tf1.transform (p2);
+            }
 
-            p1 = tf1.transform (p1);
-            p2 = tf1.transform (p2);
             assert (distance > 0);
           }
           break;
@@ -237,6 +248,7 @@ namespace fcl
     {
       gjk_max_iterations = 128;
       gjk_tolerance = 1e-6;
+      gjk_distance_threshold = std::numeric_limits<FCL_REAL>::max();
       epa_max_face_num = 128;
       epa_max_vertex_num = 64;
       epa_max_iterations = 255;
@@ -277,6 +289,9 @@ namespace fcl
 
     /// @brief maximum number of iterations used for GJK iterations
     FCL_REAL gjk_max_iterations;
+
+    /// @brief Distance above which GJK only returns a distance lower bound.
+    FCL_REAL gjk_distance_threshold;
 
     /// @brief Whether smart guess can be provided
     mutable bool enable_cached_guess;
