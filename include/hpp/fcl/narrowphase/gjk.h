@@ -220,51 +220,29 @@ struct EPA
 {
 private:
   typedef GJK::SimplexV SimplexV;
+  typedef unsigned int vertex_id_t;
+  typedef unsigned char face_id_t;
   struct SimplexF
   {
     Vec3f n;
     FCL_REAL d;
     SimplexV* vertex[3]; // a face has three vertices
     SimplexF* f[3]; // a face has three adjacent faces
-    SimplexF* l[2]; // the pre and post faces in the list
     size_t e[3];
     size_t pass;
 
-    SimplexF () : n(Vec3f::Zero()) {};
+    SimplexF () {};
   };
 
   struct SimplexFaceCost
   {
-    //face_id_t face;
-    SimplexF* face;
+    face_id_t face;
     FCL_REAL distance;
     SimplexFaceCost() {}
-    SimplexFaceCost(SimplexF* _face, FCL_REAL _distance)
+    SimplexFaceCost(face_id_t _face, FCL_REAL _distance)
       : face(_face), distance(_distance) {}
-    bool operator<(const SimplexFaceCost& o) const { return distance < o.distance; }
-  };
-
-  struct SimplexList
-  {
-    SimplexF* root;
-    size_t count;
-    SimplexList() : root(NULL), count(0) {}
-    void append(SimplexF* face)
-    {
-      face->l[0] = NULL;
-      face->l[1] = root;
-      if(root) root->l[0] = face;
-      root = face;
-      ++count;
-    }
-
-    void remove(SimplexF* face)
-    {
-      if(face->l[1]) face->l[1]->l[0] = face->l[0];
-      if(face->l[0]) face->l[0]->l[1] = face->l[1];
-      if(face == root) root = face->l[1];
-      --count;
-    }
+    // put low distance at the end.
+    bool operator<(const SimplexFaceCost& o) const { return (distance > o.distance) || ( (distance == o.distance) && face > o.face); }
   };
 
   static inline void bind(SimplexF* fa, size_t ea, SimplexF* fb, size_t eb)
@@ -282,32 +260,36 @@ private:
   };
 
 private:
-  unsigned int max_face_num;
-  unsigned int max_vertex_num;
+  face_id_t    max_face_num;
+  vertex_id_t  max_vertex_num;
   unsigned int max_iterations;
   FCL_REAL tolerance;
 
-  /// contains a list of faces ordered by their distance to the origin.
   typedef std::vector<SimplexFaceCost> SimplexFaceCosts_t;
-  SimplexFaceCosts_t sortedFaces_;
+  /// contains an ordered list of faces/
+  /// They are ordered by their distance to the origin,
+  /// the first being the greatest.
+  SimplexFaceCosts_t sortedFaces;
+  std::vector<face_id_t> stock;
 
 public:
 
   enum Status {Valid, Touching, Degenerated, NonConvex, InvalidHull, OutOfFaces, OutOfVertices, AccuracyReached, FallBack, Failed};
-  
+
   Status status;
   GJK::Simplex result;
   Vec3f normal;
   FCL_REAL depth;
   SimplexV* sv_store;
-  SimplexF* fc_store;
+  SimplexF* faces;
   size_t nextsv;
-  SimplexList hull, stock;
 
-  EPA(unsigned int max_face_num_, unsigned int max_vertex_num_, unsigned int max_iterations_, FCL_REAL tolerance_) : max_face_num(max_face_num_),
-                                                                                                                     max_vertex_num(max_vertex_num_),
-                                                                                                                     max_iterations(max_iterations_),
-                                                                                                                     tolerance(tolerance_)
+  EPA(face_id_t max_face_num_, vertex_id_t max_vertex_num_,
+      unsigned int max_iterations_, FCL_REAL tolerance_) :
+    max_face_num(max_face_num_),
+    max_vertex_num(max_vertex_num_),
+    max_iterations(max_iterations_),
+    tolerance(tolerance_)
   {
     initialize();
   }
@@ -315,7 +297,7 @@ public:
   ~EPA()
   {
     delete [] sv_store;
-    delete [] fc_store;
+    delete [] faces;
   }
 
   void initialize();
@@ -325,7 +307,7 @@ public:
   SimplexF* newFace(SimplexV* a, SimplexV* b, SimplexV* vertex, bool forced);
 
   /// @brief Find the best polytope face to split
-  SimplexF* findBest();
+  SimplexFaceCost findBest();
 
   Status evaluate(GJK& gjk, const Vec3f& guess);
 

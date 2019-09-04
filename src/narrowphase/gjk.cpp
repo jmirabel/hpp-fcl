@@ -1047,14 +1047,16 @@ bool GJK::projectTetrahedraOrigin(const Simplex& current, Simplex& next)
 void EPA::initialize()
 {
   sv_store = new SimplexV[max_vertex_num];
-  fc_store = new SimplexF[max_face_num];
-  sortedFaces_.reserve(max_face_num);
+  faces = new SimplexF[max_face_num];
+  stock.reserve(max_face_num);
+  sortedFaces.reserve(max_face_num);
   status = Failed;
   normal = Vec3f(0, 0, 0);
   depth = 0;
   nextsv = 0;
-  for(size_t i = 0; i < max_face_num; ++i)
-    stock.append(&fc_store[max_face_num-i-1]);
+  // TODO do we need a stock ? cannot it be an index to the last available face ?
+  for(face_id_t i = 0; i < max_face_num; ++i)
+    stock.push_back(face_id_t(max_face_num-1-i));
 }
 
 bool EPA::getEdgeDist(SimplexF* face, const Vec3f& a, const Vec3f& b, FCL_REAL& dist)
@@ -1084,11 +1086,12 @@ bool EPA::getEdgeDist(SimplexF* face, const Vec3f& a, const Vec3f& b, FCL_REAL& 
 
 EPA::SimplexF* EPA::newFace(SimplexV* a, SimplexV* b, SimplexV* c, bool forced)
 {
-  if(stock.root)
+  if(!stock.empty())
   {
-    SimplexF* face = stock.root;
-    stock.remove(face);
-    hull.append(face);
+    face_id_t fid = stock.back();
+    SimplexF* face = &faces[fid];
+    stock.pop_back();
+
     face->pass = 0;
     face->vertex[0] = a;
     face->vertex[1] = b;
@@ -1109,10 +1112,14 @@ EPA::SimplexF* EPA::newFace(SimplexV* a, SimplexV* b, SimplexV* c, bool forced)
 
       if(forced || face->d >= -tolerance)
       {
-        SimplexFaceCost faceCost (face, face->d);
+        SimplexFaceCost faceCost;
+        faceCost.face = fid;
+        faceCost.distance = face->d * face->d;
         SimplexFaceCosts_t::iterator _where =
-          std::upper_bound (sortedFaces_.begin(), sortedFaces_.end(), faceCost);
-        sortedFaces_.insert (_where, faceCost);
+          std::upper_bound (sortedFaces.begin(), sortedFaces.end(), faceCost);
+        sortedFaces.insert (_where, faceCost);
+        assert (stock.size()+sortedFaces.size() == max_face_num
+            || stock.size()+sortedFaces.size()+1 == max_face_num);
         return face;
       }
       else
@@ -1121,34 +1128,23 @@ EPA::SimplexF* EPA::newFace(SimplexV* a, SimplexV* b, SimplexV* c, bool forced)
     else
       status = Degenerated;
 
-    hull.remove(face);
-    stock.append(face);
+    stock.push_back(fid);
+    assert (stock.size()+sortedFaces.size() == max_face_num
+        || stock.size()+sortedFaces.size()+1 == max_face_num);
     return NULL;
   }
-    
-  status = stock.root ? OutOfVertices : OutOfFaces;
+
+  assert (stock.size()+sortedFaces.size() == max_face_num
+      || stock.size()+sortedFaces.size()+1 == max_face_num);
+  status = OutOfFaces;
   return NULL;
 }
 
 /** \brief Find the best polytope face to split */
-EPA::SimplexF* EPA::findBest()
+EPA::SimplexFaceCost EPA::findBest()
 {
-  assert (!sortedFaces_.empty());
-#ifndef NDEBUG
-  SimplexF* minf = hull.root;
-  FCL_REAL mind = minf->d * minf->d;
-  for(SimplexF* f = minf->l[1]; f; f = f->l[1])
-  {
-    FCL_REAL sqd = f->d * f->d;
-    if(sqd < mind)
-    {
-      minf = f;
-      mind = sqd;
-    }
-  }
-  assert (sortedFaces_.front().face==minf);
-#endif
-  return sortedFaces_.front().face;
+  assert (!sortedFaces.empty());
+  return sortedFaces.back();
 }
 
 EPA::Status EPA::evaluate(GJK& gjk, const Vec3f& guess)
@@ -1156,23 +1152,20 @@ EPA::Status EPA::evaluate(GJK& gjk, const Vec3f& guess)
   GJK::Simplex& simplex = *gjk.getSimplex();
   if((simplex.rank > 1) && gjk.encloseOrigin())
   {
-    while(hull.root)
-    {
-      SimplexF* f = hull.root;
-      hull.remove(f);
-      stock.append(f);
-    }
+    if (stock.size() != max_face_num)
+      for(face_id_t i = 0; i < max_face_num; ++i)
+        stock.push_back(face_id_t(max_face_num-1-i));
+    sortedFaces.clear();
 
     status = Valid;
     nextsv = 0;
 
+    assert(simplex.rank == 4);
     if((simplex.vertex[0]->w - simplex.vertex[3]->w).dot
        ((simplex.vertex[1]->w - simplex.vertex[3]->w).cross
         (simplex.vertex[2]->w - simplex.vertex[3]->w)) < 0)
     {
-      SimplexV* tmp = simplex.vertex[0];
-      simplex.vertex[0] = simplex.vertex[1];
-      simplex.vertex[1] = tmp;
+      std::swap(simplex.vertex[0], simplex.vertex[1]);
     }
 
     SimplexF* tetrahedron[] = {newFace(simplex.vertex[0], simplex.vertex[1],
@@ -1184,10 +1177,13 @@ EPA::Status EPA::evaluate(GJK& gjk, const Vec3f& guess)
                                newFace(simplex.vertex[0], simplex.vertex[2],
                                        simplex.vertex[3], true) };
 
-    if(hull.count == 4)
+    if (stock.size()+4 == max_face_num)
     {
-      SimplexF* best = findBest(); // find the best face (the face with the minimum distance to origin) to split
-      SimplexF outer = *best;
+      SimplexFaceCost best = findBest(); // find the best face (the face with the minimum distance to origin) to split
+      sortedFaces.pop_back();
+      SimplexF* bestFace = &faces[best.face];
+      SimplexF outer = *bestFace;
+      depth = bestFace->d;
       size_t pass = 0;
       size_t iterations = 0;
         
@@ -1202,19 +1198,21 @@ EPA::Status EPA::evaluate(GJK& gjk, const Vec3f& guess)
       status = Valid;
       for(; iterations < max_iterations; ++iterations)
       {
+        assert (stock.size()+sortedFaces.size()+1 == max_face_num);
+
         if(nextsv < max_vertex_num)
         {
           SimplexHorizon horizon;
           SimplexV* w = &sv_store[nextsv++];
           bool valid = true;
-          best->pass = ++pass;
-          gjk.getSupport(best->n, true, *w);
-          FCL_REAL wdist = best->n.dot(w->w) - best->d;
+          bestFace->pass = ++pass;
+          gjk.getSupport(bestFace->n, true, *w);
+          FCL_REAL wdist = bestFace->n.dot(w->w) - bestFace->d;
           if(wdist > tolerance)
           {
             for(size_t j = 0; (j < 3) && valid; ++j)
             {
-              valid &= expand(pass, w, best->f[j], best->e[j], horizon);
+              valid &= expand(pass, w, bestFace->f[j], bestFace->e[j], horizon);
             }
 
               
@@ -1222,10 +1220,12 @@ EPA::Status EPA::evaluate(GJK& gjk, const Vec3f& guess)
             {
               // need to add the edge connectivity between first and last faces
               bind(horizon.ff, 2, horizon.cf, 1);
-              hull.remove(best);
-              stock.append(best);
+              stock.push_back (best.face);
               best = findBest();
-              outer = *best;
+              sortedFaces.pop_back();
+              bestFace = &faces[best.face];
+              outer = *bestFace;
+              depth = bestFace->d;
             }
             else
             {
@@ -1244,7 +1244,6 @@ EPA::Status EPA::evaluate(GJK& gjk, const Vec3f& guess)
       }
 
       normal = outer.n;
-      depth = outer.d;
       result.rank = 3;
       result.vertex[0] = outer.vertex[0];
       result.vertex[1] = outer.vertex[1];
@@ -1264,14 +1263,13 @@ EPA::Status EPA::evaluate(GJK& gjk, const Vec3f& guess)
   return status;
 }
 
-
 /** \brief the goal is to add a face connecting vertex w and face edge f[e] */
 bool EPA::expand(size_t pass, SimplexV* w, SimplexF* f, size_t e, SimplexHorizon& horizon)
 {
   static const size_t nexti[] = {1, 2, 0};
   static const size_t previ[] = {2, 0, 1};
 
-  if(f->pass != pass)
+  if(f->pass != pass) // if f->pass == pass, then f is the face from which we started the recursion.
   {
     const size_t e1 = nexti[e];
       
@@ -1303,8 +1301,14 @@ bool EPA::expand(size_t pass, SimplexV* w, SimplexF* f, size_t e, SimplexHorizon
       f->pass = pass;
       if(expand(pass, w, f->f[e1], f->e[e1], horizon) && expand(pass, w, f->f[e2], f->e[e2], horizon))
       {
-        hull.remove(f);
-        stock.append(f);
+        assert (&faces[f-faces] == f);
+        face_id_t fid = (face_id_t)(f-faces);
+        stock.push_back (fid);
+        // Remove face from sortedFaces
+        SimplexFaceCosts_t::iterator _faceCost =
+          std::lower_bound (sortedFaces.begin(), sortedFaces.end(), SimplexFaceCost (fid, f->d*f->d));
+        assert (f == &faces[_faceCost->face]);
+        sortedFaces.erase (_faceCost);
         return true;
       }
     }
