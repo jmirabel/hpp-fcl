@@ -1056,28 +1056,24 @@ void EPA::initialize()
     stock.append(&fc_store[max_face_num-i-1]);
 }
 
-bool EPA::getEdgeDist(SimplexF* face, SimplexV* a, SimplexV* b, FCL_REAL& dist)
+bool EPA::getEdgeDist(SimplexF* face, const Vec3f& a, const Vec3f& b, FCL_REAL& dist)
 {
-  Vec3f ba = b->w - a->w;
-  Vec3f n_ab = ba.cross(face->n);
-  FCL_REAL a_dot_nab = a->w.dot(n_ab);
+  // a.(ab^n) = n.(a^ab) = n.(a^b)
+  FCL_REAL a_dot_nab = face->n.dot(a.cross(b));
 
   if(a_dot_nab < 0) // the origin is on the outside part of ab
   {
     // following is similar to projectOrigin for two points
     // however, as we dont need to compute the parameterization, dont need to compute 0 or 1
-    FCL_REAL a_dot_ba = a->w.dot(ba); 
-    FCL_REAL b_dot_ba = b->w.dot(ba);
+    FCL_REAL a_dot_b = a.dot(b);
+    FCL_REAL a2 = a.squaredNorm(), b2;
 
-    if(a_dot_ba > 0) 
-      dist = a->w.norm();
-    else if(b_dot_ba < 0)
-      dist = b->w.norm();
+    if(a_dot_b >= a2) // a.dot(ab) >= 0
+      dist = std::sqrt(a2);
+    else if(a_dot_b >= (b2 = b.squaredNorm())) // b.dot(ab) <= 0
+      dist = std::sqrt(b2);
     else
-    {
-      FCL_REAL a_dot_b = a->w.dot(b->w);
-      dist = std::sqrt(std::max(a->w.squaredNorm() * b->w.squaredNorm() - a_dot_b * a_dot_b, (FCL_REAL)0));
-    }
+      dist = std::sqrt(std::max(a2 * b2 - a_dot_b * a_dot_b, (FCL_REAL)0));
 
     return true;
   }
@@ -1096,19 +1092,20 @@ EPA::SimplexF* EPA::newFace(SimplexV* a, SimplexV* b, SimplexV* c, bool forced)
     face->vertex[0] = a;
     face->vertex[1] = b;
     face->vertex[2] = c;
-    face->n = (b->w - a->w).cross(c->w - a->w);
+    face->n.noalias() = (b->w - a->w).cross(c->w - a->w);
     FCL_REAL l = face->n.norm();
       
     if(l > tolerance)
     {
-      if(!(getEdgeDist(face, a, b, face->d) ||
-           getEdgeDist(face, b, c, face->d) ||
-           getEdgeDist(face, c, a, face->d)))
+      face->n /= l;
+
+      if(!(getEdgeDist(face, a->w, b->w, face->d) ||
+           getEdgeDist(face, b->w, c->w, face->d) ||
+           getEdgeDist(face, c->w, a->w, face->d)))
       {
-        face->d = a->w.dot(face->n) / l;
+        face->d = a->w.dot(face->n);
       }
 
-      face->n /= l;
       if(forced || face->d >= -tolerance)
         return face;
       else
@@ -1200,7 +1197,6 @@ EPA::Status EPA::evaluate(GJK& gjk, const Vec3f& guess)
           SimplexV* w = &sv_store[nextsv++];
           bool valid = true;
           best->pass = ++pass;
-          // At the moment, SimplexF.n is always normalized. This could be revised in the future...
           gjk.getSupport(best->n, true, *w);
           FCL_REAL wdist = best->n.dot(w->w) - best->d;
           if(wdist > tolerance)

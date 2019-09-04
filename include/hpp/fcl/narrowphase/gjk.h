@@ -305,7 +305,7 @@ public:
 
   void initialize();
 
-  bool getEdgeDist(SimplexF* face, SimplexV* a, SimplexV* b, FCL_REAL& dist);
+  bool getEdgeDist(SimplexF* face, const Vec3f& a, const Vec3f& b, FCL_REAL& dist);
 
   SimplexF* newFace(SimplexV* a, SimplexV* b, SimplexV* vertex, bool forced);
 
