@@ -233,6 +233,17 @@ private:
     SimplexF () : n(Vec3f::Zero()) {};
   };
 
+  struct SimplexFaceCost
+  {
+    //face_id_t face;
+    SimplexF* face;
+    FCL_REAL distance;
+    SimplexFaceCost() {}
+    SimplexFaceCost(SimplexF* _face, FCL_REAL _distance)
+      : face(_face), distance(_distance) {}
+    bool operator<(const SimplexFaceCost& o) const { return distance < o.distance; }
+  };
+
   struct SimplexList
   {
     SimplexF* root;
@@ -275,6 +286,10 @@ private:
   unsigned int max_vertex_num;
   unsigned int max_iterations;
   FCL_REAL tolerance;
+
+  /// contains a list of faces ordered by their distance to the origin.
+  typedef std::vector<SimplexFaceCost> SimplexFaceCosts_t;
+  SimplexFaceCosts_t sortedFaces_;
 
 public:
 

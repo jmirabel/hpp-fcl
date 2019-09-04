@@ -1048,6 +1048,7 @@ void EPA::initialize()
 {
   sv_store = new SimplexV[max_vertex_num];
   fc_store = new SimplexF[max_face_num];
+  sortedFaces_.reserve(max_face_num);
   status = Failed;
   normal = Vec3f(0, 0, 0);
   depth = 0;
@@ -1107,7 +1108,13 @@ EPA::SimplexF* EPA::newFace(SimplexV* a, SimplexV* b, SimplexV* c, bool forced)
       }
 
       if(forced || face->d >= -tolerance)
+      {
+        SimplexFaceCost faceCost (face, face->d);
+        SimplexFaceCosts_t::iterator _where =
+          std::upper_bound (sortedFaces_.begin(), sortedFaces_.end(), faceCost);
+        sortedFaces_.insert (_where, faceCost);
         return face;
+      }
       else
         status = NonConvex;
     }
@@ -1126,6 +1133,8 @@ EPA::SimplexF* EPA::newFace(SimplexV* a, SimplexV* b, SimplexV* c, bool forced)
 /** \brief Find the best polytope face to split */
 EPA::SimplexF* EPA::findBest()
 {
+  assert (!sortedFaces_.empty());
+#ifndef NDEBUG
   SimplexF* minf = hull.root;
   FCL_REAL mind = minf->d * minf->d;
   for(SimplexF* f = minf->l[1]; f; f = f->l[1])
@@ -1137,7 +1146,9 @@ EPA::SimplexF* EPA::findBest()
       mind = sqd;
     }
   }
-  return minf;
+  assert (sortedFaces_.front().face==minf);
+#endif
+  return sortedFaces_.front().face;
 }
 
 EPA::Status EPA::evaluate(GJK& gjk, const Vec3f& guess)
