@@ -261,7 +261,7 @@ namespace fcl
     }
 
     /// @brief maximum number of simplex face used in EPA algorithm
-    unsigned int epa_max_face_num;
+    details::EPA::face_id_t epa_max_face_num;
 
     /// @brief maximum number of simplex vertex used in EPA algorithm
     unsigned int epa_max_vertex_num;

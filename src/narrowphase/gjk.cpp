@@ -1264,14 +1264,14 @@ EPA::Status EPA::evaluate(GJK& gjk, const Vec3f& guess)
 }
 
 /** \brief the goal is to add a face connecting vertex w and face edge f[e] */
-bool EPA::expand(size_t pass, SimplexV* w, SimplexF* f, size_t e, SimplexHorizon& horizon)
+bool EPA::expand(size_t pass, SimplexV* w, SimplexF* f, vertex_id_t e, SimplexHorizon& horizon)
 {
-  static const size_t nexti[] = {1, 2, 0};
-  static const size_t previ[] = {2, 0, 1};
+  static const vertex_id_t nexti[] = {1, 2, 0};
+  static const vertex_id_t previ[] = {2, 0, 1};
 
   if(f->pass != pass) // if f->pass == pass, then f is the face from which we started the recursion.
   {
-    const size_t e1 = nexti[e];
+    const vertex_id_t e1 = nexti[e];
       
     // case 1: the new face is not degenerated, i.e., the new face is not coplanar with the old face f.
     if(f->n.dot(w->w) - f->d < -tolerance)

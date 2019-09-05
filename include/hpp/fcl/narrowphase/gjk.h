@@ -218,17 +218,18 @@ static const size_t EPA_MAX_ITERATIONS = 255;
 /// @brief class for EPA algorithm
 struct EPA
 {
+public:
+  typedef GJK::vertex_id_t vertex_id_t;
+  typedef unsigned char face_id_t;
 private:
   typedef GJK::SimplexV SimplexV;
-  typedef unsigned int vertex_id_t;
-  typedef unsigned char face_id_t;
   struct SimplexF
   {
     Vec3f n;
     FCL_REAL d;
     SimplexV* vertex[3]; // a face has three vertices
     SimplexF* f[3]; // a face has three adjacent faces
-    size_t e[3];
+    vertex_id_t e[3];
     size_t pass;
 
     SimplexF () {};
@@ -245,7 +246,7 @@ private:
     bool operator<(const SimplexFaceCost& o) const { return (distance > o.distance) || ( (distance == o.distance) && face > o.face); }
   };
 
-  static inline void bind(SimplexF* fa, size_t ea, SimplexF* fb, size_t eb)
+  static inline void bind(SimplexF* fa, vertex_id_t ea, SimplexF* fb, vertex_id_t eb)
   {
     fa->e[ea] = eb; fa->f[ea] = fb;
     fb->e[eb] = ea; fb->f[eb] = fa;
@@ -261,7 +262,7 @@ private:
 
 private:
   face_id_t    max_face_num;
-  vertex_id_t  max_vertex_num;
+  unsigned int max_vertex_num;
   unsigned int max_iterations;
   FCL_REAL tolerance;
 
@@ -284,7 +285,7 @@ public:
   SimplexF* faces;
   size_t nextsv;
 
-  EPA(face_id_t max_face_num_, vertex_id_t max_vertex_num_,
+  EPA(face_id_t max_face_num_, unsigned int max_vertex_num_,
       unsigned int max_iterations_, FCL_REAL tolerance_) :
     max_face_num(max_face_num_),
     max_vertex_num(max_vertex_num_),
@@ -312,7 +313,7 @@ public:
   Status evaluate(GJK& gjk, const Vec3f& guess);
 
   /// @brief the goal is to add a face connecting vertex w and face edge f[e] 
-  bool expand(size_t pass, SimplexV* w, SimplexF* f, size_t e, SimplexHorizon& horizon);  
+  bool expand(size_t pass, SimplexV* w, SimplexF* f, vertex_id_t e, SimplexHorizon& horizon);  
 };
 
 
