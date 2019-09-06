@@ -222,11 +222,13 @@ public:
   typedef GJK::vertex_id_t vertex_id_t;
   typedef unsigned char face_id_t;
 private:
+  enum Feature { AB=0, BC=1, CA=2, Face };
   typedef GJK::SimplexV SimplexV;
   struct SimplexF
   {
     Vec3f n;
     FCL_REAL d;
+    Feature closest; // whether the closest is a segment
     SimplexV* vertex[3]; // a face has three vertices
     SimplexF* f[3]; // a face has three adjacent faces
     vertex_id_t e[3];
@@ -263,6 +265,7 @@ private:
   face_id_t    max_face_num;
   unsigned int max_vertex_num;
   unsigned int max_iterations;
+  SimplexFaceCost bestPoint;
   FCL_REAL tolerance;
 
   typedef std::vector<SimplexFaceCost> SimplexFaceCosts_t;
@@ -312,7 +315,7 @@ public:
   Status evaluate(GJK& gjk, const Vec3f& guess);
 
   /// @brief the goal is to add a face connecting vertex w and face edge f[e] 
-  bool expand(size_t pass, SimplexV* w, SimplexF* f, vertex_id_t e, SimplexHorizon& horizon);  
+  bool expand(size_t pass, SimplexV* w, SimplexF* f, vertex_id_t e, SimplexHorizon& horizon, bool mustSplit);  
 };
 
 

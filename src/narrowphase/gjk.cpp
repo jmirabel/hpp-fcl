@@ -1050,6 +1050,7 @@ void EPA::initialize()
   faces = new SimplexF[max_face_num];
   stock.reserve(max_face_num);
   sortedFaces.reserve(max_face_num);
+  bestPoint.d = std::sqrt(std::numeric_limits<FCL_REAL>::max());
   status = Failed;
   normal = Vec3f(0, 0, 0);
   depth = 0;
@@ -1075,10 +1076,16 @@ bool EPA::getEdgeDist(SimplexF* face, const Vec3f& a, const Vec3f& b, bool& poin
 
     if(a_dot_b >= a2) { // a.dot(ab) >= 0
       point = true;
-      face->d = std::sqrt(a2);
+      if (a2 < bestPoint.d * bestPoint.d) {
+        bestPoint.d = face->d = std::sqrt(a2);
+        bestPoint.face = (face_id_t)(face-faces);
+      }
     } else if(a_dot_b >= (b2 = b.squaredNorm())) { // b.dot(ab) <= 0
       point = true;
-      face->d = std::sqrt(b2);
+      if (b2 < bestPoint.d * bestPoint.d) {
+        bestPoint.d = face->d = std::sqrt(b2);
+        bestPoint.face = (face_id_t)(face-faces);
+      }
     } else
       face->d = std::sqrt(std::max(a2 * b2 - a_dot_b * a_dot_b, (FCL_REAL)0));
 
@@ -1109,15 +1116,19 @@ EPA::SimplexF* EPA::newFace(SimplexV* a, SimplexV* b, SimplexV* c, bool forced)
 
       bool point = false, edge = false;
       if (getEdgeDist(face, a->w, b->w, point)) {
+        face->closest = AB;
         edge = true;
       } else if (getEdgeDist(face, a->w, b->w, point)) {
+        face->closest = BC;
         edge = true;
       } else if (getEdgeDist(face, c->w, a->w, point)) {
+        face->closest = CA;
         edge = true;
       } else {
         face->d = a->w.dot(face->n);
         if(forced || face->d >= -tolerance)
         {
+          face->closest = Face;
           sortedFaces.push_back(SimplexFaceCost(fid, face->d * face->d));
           return face;
         }
@@ -1212,15 +1223,25 @@ EPA::Status EPA::evaluate(GJK& gjk, const Vec3f& guess)
           {
             for(vertex_id_t j = 0; (j < 3) && valid; ++j)
             {
-              valid &= expand(pass, w, bestFace->f[j], bestFace->e[j], horizon);
+              valid &= expand(pass, w, bestFace->f[j], bestFace->e[j],
+                  horizon, vertex_id_t(bestFace->closest) == j);
             }
 
             if(valid && horizon.nf >= 3)
             {
               // need to add the edge connectivity between first and last faces
               bind(horizon.ff, 2, horizon.cf, 1);
+              if (sortedFaces.empty()) {
+                assert (false); // This should never happen;
+                outer = faces[bestPoint.face];
+                break;
+              }
               stock.push_back (best.face);
               best = findBest();
+              if (!(best < bestPoint)) {
+                outer = faces[bestPoint.face];
+                break;
+              }
               bestFace = &faces[best.face];
               outer = *bestFace;
             }
@@ -1262,7 +1283,8 @@ EPA::Status EPA::evaluate(GJK& gjk, const Vec3f& guess)
 }
 
 /** \brief the goal is to add a face connecting vertex w and face edge f[e] */
-bool EPA::expand(size_t pass, SimplexV* w, SimplexF* f, vertex_id_t e, SimplexHorizon& horizon)
+bool EPA::expand(size_t pass, SimplexV* w, SimplexF* f, vertex_id_t e,
+    SimplexHorizon& horizon, bool mustSplit)
 {
   static const vertex_id_t nexti[] = {1, 2, 0};
   static const vertex_id_t previ[] = {2, 0, 1};
@@ -1272,7 +1294,7 @@ bool EPA::expand(size_t pass, SimplexV* w, SimplexF* f, vertex_id_t e, SimplexHo
     const vertex_id_t e1 = nexti[e];
       
     // case 1: the new face is not degenerated, i.e., the new face is not coplanar with the old face f.
-    if(f->n.dot(w->w) - f->d < -tolerance)
+    if(!mustSplit && f->n.dot(w->w) - f->d < -tolerance)
     {
       SimplexF* nf = newFace(f->vertex[e1], f->vertex[e], w, false);
       if(nf)
@@ -1297,7 +1319,8 @@ bool EPA::expand(size_t pass, SimplexV* w, SimplexF* f, vertex_id_t e, SimplexHo
     {
       const size_t e2 = previ[e];
       f->pass = pass;
-      if(expand(pass, w, f->f[e1], f->e[e1], horizon) && expand(pass, w, f->f[e2], f->e[e2], horizon))
+      if(    expand(pass, w, f->f[e1], f->e[e1], horizon, false)
+          && expand(pass, w, f->f[e2], f->e[e2], horizon, false))
       {
         assert (&faces[f-faces] == f);
         face_id_t fid = (face_id_t)(f-faces);
