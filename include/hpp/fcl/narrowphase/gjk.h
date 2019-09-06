@@ -238,12 +238,11 @@ private:
   struct SimplexFaceCost
   {
     face_id_t face;
-    FCL_REAL distance;
+    FCL_REAL d;
     SimplexFaceCost() {}
-    SimplexFaceCost(face_id_t _face, FCL_REAL _distance)
-      : face(_face), distance(_distance) {}
+    SimplexFaceCost(face_id_t _face, FCL_REAL _d) : face(_face), d(_d) {}
     // put low distance at the end.
-    bool operator<(const SimplexFaceCost& o) const { return (distance > o.distance) || ( (distance == o.distance) && face > o.face); }
+    bool operator<(const SimplexFaceCost& o) const { return d < o.d; }
   };
 
   static inline void bind(SimplexF* fa, vertex_id_t ea, SimplexF* fb, vertex_id_t eb)
@@ -303,7 +302,7 @@ public:
 
   void initialize();
 
-  bool getEdgeDist(SimplexF* face, const Vec3f& a, const Vec3f& b, FCL_REAL& dist);
+  bool getEdgeDist(SimplexF* face, const Vec3f& a, const Vec3f& b, bool& point);
 
   SimplexF* newFace(SimplexV* a, SimplexV* b, SimplexV* vertex, bool forced);
 

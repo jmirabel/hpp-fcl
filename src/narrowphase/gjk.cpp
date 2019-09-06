@@ -1059,24 +1059,28 @@ void EPA::initialize()
     stock.push_back(face_id_t(max_face_num-1-i));
 }
 
-bool EPA::getEdgeDist(SimplexF* face, const Vec3f& a, const Vec3f& b, FCL_REAL& dist)
+bool EPA::getEdgeDist(SimplexF* face, const Vec3f& a, const Vec3f& b, bool& point)
 {
   // a.(ab^n) = n.(a^ab) = n.(a^b)
   FCL_REAL a_dot_nab = face->n.dot(a.cross(b));
 
-  if(a_dot_nab < 0) // the origin is on the outside part of ab
+  // the origin is on the outside part of ab.
+  // For strictly convex meshes, this face will never be the closest.
+  if(a_dot_nab < 0)
   {
     // following is similar to projectOrigin for two points
     // however, as we dont need to compute the parameterization, dont need to compute 0 or 1
     FCL_REAL a_dot_b = a.dot(b);
     FCL_REAL a2 = a.squaredNorm(), b2;
 
-    if(a_dot_b >= a2) // a.dot(ab) >= 0
-      dist = std::sqrt(a2);
-    else if(a_dot_b >= (b2 = b.squaredNorm())) // b.dot(ab) <= 0
-      dist = std::sqrt(b2);
-    else
-      dist = std::sqrt(std::max(a2 * b2 - a_dot_b * a_dot_b, (FCL_REAL)0));
+    if(a_dot_b >= a2) { // a.dot(ab) >= 0
+      point = true;
+      face->d = std::sqrt(a2);
+    } else if(a_dot_b >= (b2 = b.squaredNorm())) { // b.dot(ab) <= 0
+      point = true;
+      face->d = std::sqrt(b2);
+    } else
+      face->d = std::sqrt(std::max(a2 * b2 - a_dot_b * a_dot_b, (FCL_REAL)0));
 
     return true;
   }
@@ -1098,44 +1102,40 @@ EPA::SimplexF* EPA::newFace(SimplexV* a, SimplexV* b, SimplexV* c, bool forced)
     face->vertex[2] = c;
     face->n.noalias() = (b->w - a->w).cross(c->w - a->w);
     FCL_REAL l = face->n.norm();
-      
+
     if(l > tolerance)
     {
       face->n /= l;
 
-      if(!(getEdgeDist(face, a->w, b->w, face->d) ||
-           getEdgeDist(face, b->w, c->w, face->d) ||
-           getEdgeDist(face, c->w, a->w, face->d)))
-      {
+      bool point = false, edge = false;
+      if (getEdgeDist(face, a->w, b->w, point)) {
+        edge = true;
+      } else if (getEdgeDist(face, a->w, b->w, point)) {
+        edge = true;
+      } else if (getEdgeDist(face, c->w, a->w, point)) {
+        edge = true;
+      } else {
         face->d = a->w.dot(face->n);
+        if(forced || face->d >= -tolerance)
+        {
+          sortedFaces.push_back(SimplexFaceCost(fid, face->d * face->d));
+          return face;
+        }
       }
-
-      if(forced || face->d >= -tolerance)
-      {
-        SimplexFaceCost faceCost;
-        faceCost.face = fid;
-        faceCost.distance = face->d * face->d;
-        SimplexFaceCosts_t::iterator _where =
-          std::upper_bound (sortedFaces.begin(), sortedFaces.end(), faceCost);
-        sortedFaces.insert (_where, faceCost);
-        assert (stock.size()+sortedFaces.size() == max_face_num
-            || stock.size()+sortedFaces.size()+1 == max_face_num);
+      if (edge) {
+        if (!point) sortedFaces.push_back(SimplexFaceCost(fid, face->d * face->d));
         return face;
       }
-      else
-        status = NonConvex;
+
+      status = NonConvex;
     }
     else
       status = Degenerated;
 
     stock.push_back(fid);
-    assert (stock.size()+sortedFaces.size() == max_face_num
-        || stock.size()+sortedFaces.size()+1 == max_face_num);
     return NULL;
   }
 
-  assert (stock.size()+sortedFaces.size() == max_face_num
-      || stock.size()+sortedFaces.size()+1 == max_face_num);
   status = OutOfFaces;
   return NULL;
 }
@@ -1144,7 +1144,11 @@ EPA::SimplexF* EPA::newFace(SimplexV* a, SimplexV* b, SimplexV* c, bool forced)
 EPA::SimplexFaceCost EPA::findBest()
 {
   assert (!sortedFaces.empty());
-  return sortedFaces.back();
+  SimplexFaceCosts_t::iterator best = std::min_element (sortedFaces.begin(), sortedFaces.end());
+  SimplexFaceCost ret = *best;
+  *best = sortedFaces.back();
+  sortedFaces.pop_back();
+  return ret;
 }
 
 EPA::Status EPA::evaluate(GJK& gjk, const Vec3f& guess)
@@ -1180,10 +1184,8 @@ EPA::Status EPA::evaluate(GJK& gjk, const Vec3f& guess)
     if (stock.size()+4 == max_face_num)
     {
       SimplexFaceCost best = findBest(); // find the best face (the face with the minimum distance to origin) to split
-      sortedFaces.pop_back();
       SimplexF* bestFace = &faces[best.face];
       SimplexF outer = *bestFace;
-      depth = bestFace->d;
       size_t pass = 0;
       size_t iterations = 0;
         
@@ -1198,8 +1200,6 @@ EPA::Status EPA::evaluate(GJK& gjk, const Vec3f& guess)
       status = Valid;
       for(; iterations < max_iterations; ++iterations)
       {
-        assert (stock.size()+sortedFaces.size()+1 == max_face_num);
-
         if(nextsv < max_vertex_num)
         {
           SimplexHorizon horizon;
@@ -1210,22 +1210,19 @@ EPA::Status EPA::evaluate(GJK& gjk, const Vec3f& guess)
           FCL_REAL wdist = bestFace->n.dot(w->w) - bestFace->d;
           if(wdist > tolerance)
           {
-            for(size_t j = 0; (j < 3) && valid; ++j)
+            for(vertex_id_t j = 0; (j < 3) && valid; ++j)
             {
               valid &= expand(pass, w, bestFace->f[j], bestFace->e[j], horizon);
             }
 
-              
             if(valid && horizon.nf >= 3)
             {
               // need to add the edge connectivity between first and last faces
               bind(horizon.ff, 2, horizon.cf, 1);
               stock.push_back (best.face);
               best = findBest();
-              sortedFaces.pop_back();
               bestFace = &faces[best.face];
               outer = *bestFace;
-              depth = bestFace->d;
             }
             else
             {
@@ -1244,6 +1241,7 @@ EPA::Status EPA::evaluate(GJK& gjk, const Vec3f& guess)
       }
 
       normal = outer.n;
+      depth = outer.d;
       result.rank = 3;
       result.vertex[0] = outer.vertex[0];
       result.vertex[1] = outer.vertex[1];
@@ -1305,10 +1303,10 @@ bool EPA::expand(size_t pass, SimplexV* w, SimplexF* f, vertex_id_t e, SimplexHo
         face_id_t fid = (face_id_t)(f-faces);
         stock.push_back (fid);
         // Remove face from sortedFaces
-        SimplexFaceCosts_t::iterator _faceCost =
-          std::lower_bound (sortedFaces.begin(), sortedFaces.end(), SimplexFaceCost (fid, f->d*f->d));
-        assert (f == &faces[_faceCost->face]);
-        sortedFaces.erase (_faceCost);
+        for (std::size_t i = 0; i<sortedFaces.size(); ++i)
+          if (sortedFaces[i].face == fid)
+            sortedFaces[i] = sortedFaces.back();
+        sortedFaces.pop_back();
         return true;
       }
     }
