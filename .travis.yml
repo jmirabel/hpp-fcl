@@ -30,3 +30,7 @@ script:
 
   # Run unit tests
   - travis_wait 30 ./test/collision --run_test=mesh_mesh --log_level=message
+
+  - make -j4
+
+  - travis_wait 30 ctest --output-on-failure || ./test/collision --run_test=mesh_mesh --log_level=message
