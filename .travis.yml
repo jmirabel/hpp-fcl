@@ -7,29 +7,6 @@ env:
 
 matrix:
   include:
-    - name: "Trusty - Debug - g++"
-      env: BUILD_TYPE=Debug
-      dist: trusty
-      compiler: g++
-
-    - name: "Xenial - Debug - g++"
-      env: BUILD_TYPE=Debug
-      dist: xenial
-      compiler: g++
-    - name: "Xenial - Release - g++"
-      env: BUILD_TYPE=Release
-      dist: xenial
-      compiler: g++
-    - name: "Xenial - Debug - clang"
-      env: BUILD_TYPE=Debug
-      dist: xenial
-      compiler: clang
-
-    - name: "Bionic - Debug - g++"
-      env: BUILD_TYPE=Debug
-      dist: xenial
-      compiler: g++
-
     - name: "OSX - Debug - clang"
       env: BUILD_TYPE=Debug
       os: osx
@@ -49,11 +26,7 @@ script:
   - cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_CXX_FLAGS=-w -DCMAKE_CXX_FLAGS_DEBUG=${CXX_FLAGS_DEBUG} ..
 
   # Build
-  - make -j4
+  - make -j4 collision
 
   # Run unit tests
-  - travis_wait 30 make test || travis_wait 30 ctest -VV
-
-  # Make sure we can install and uninstall with no issues
-  - sudo make -j4 install
-  - sudo make -j4 uninstall
+  - travis_wait 30 ./test/collision --run_test=mesh_mesh --log_level=message
