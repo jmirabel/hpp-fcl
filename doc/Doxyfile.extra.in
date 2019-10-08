@@ -1,3 +1,5 @@
 FILE_PATTERNS          = *.h  *.hh  *.hxx
 
 GENERATE_TREEVIEW      = NO
+
+GENERATE_XML           = YES
