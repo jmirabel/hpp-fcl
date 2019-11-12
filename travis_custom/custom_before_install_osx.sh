@@ -1,8 +1,8 @@
+brew update
+brew install ccache
+
 # Add gepetto tap
 brew tap gepetto/homebrew-gepetto
-
-# install eigenpy
-brew install eigenpy
 
 # set environment variables
 export PKG_CONFIG_PATH="${PKG_CONFIG_PATH}:/opt/openrobots/lib/pkgconfig"
