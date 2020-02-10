@@ -36,6 +36,8 @@
 /** \author Jia Pan, Florent Lamiraux */
 
 #include <hpp/fcl/BV/OBB.h>
+#include "../src/BV/OBB.h"
+
 #include <hpp/fcl/BVH/BVH_utility.h>
 #include <hpp/fcl/math/transform.h>
 #include <hpp/fcl/collision_data.h>
@@ -295,6 +297,8 @@ bool obbDisjoint(const Matrix3f& B, const Vec3f& T, const Vec3f& a, const Vec3f&
 
 }
 
+/****************** obbDisjointAndLowerBoundDistance **************************/
+
 namespace internal
 {
   inline FCL_REAL obbDisjoint_check_A_axis (
@@ -351,13 +355,6 @@ namespace internal
   };
 }
 
-
-// B, T orientation and position of 2nd OBB in frame of 1st OBB,
-// a extent of 1st OBB,
-// b extent of 2nd OBB.
-//
-// This function tests whether bounding boxes should be broken down.
-//
 bool obbDisjointAndLowerBoundDistance (const Matrix3f& B, const Vec3f& T,
                                        const Vec3f& a, const Vec3f& b,
                                        const CollisionRequest& request,
@@ -392,6 +389,8 @@ bool obbDisjointAndLowerBoundDistance (const Matrix3f& B, const Vec3f& T,
   return false;
 }
 
+/*************************** OBB functions ************************************/
+
 bool OBB::overlap(const OBB& other) const
 {
   /// compute what transform [R,T] that takes us from cs1 to cs2.
@@ -403,27 +402,16 @@ bool OBB::overlap(const OBB& other) const
   return !obbDisjoint(R, T, extent, other.extent);
 }
 
-  bool OBB::overlap(const OBB& other, const CollisionRequest& request,
-                    FCL_REAL& sqrDistLowerBound) const
-  {
-    /// compute what transform [R,T] that takes us from cs1 to cs2.
-    /// [R,T] = [R1,T1]'[R2,T2] = [R1',-R1'T][R2,T2] = [R1'R2, R1'(T2-T1)]
-    /// First compute the rotation part, then translation part
-    // Vec3f t = other.To - To; // T2 - T1
-    // Vec3f T(t.dot(axis[0]), t.dot(axis[1]), t.dot(axis[2])); // R1'(T2-T1)
-    // Matrix3f R(axis[0].dot(other.axis[0]), axis[0].dot(other.axis[1]),
-	       // axis[0].dot(other.axis[2]),
-	       // axis[1].dot(other.axis[0]), axis[1].dot(other.axis[1]),
-	       // axis[1].dot(other.axis[2]),
-	       // axis[2].dot(other.axis[0]), axis[2].dot(other.axis[1]),
-	       // axis[2].dot(other.axis[2]));
+bool OBB::overlap(const OBB& other, const CollisionRequest& request,
+    FCL_REAL& sqrDistLowerBound) const
+{
+    // compute what transform [R,T] that takes us from cs1 to cs2.
   Vec3f T (axes.transpose() * (other.To - To));
   Matrix3f R (axes.transpose() * other.axes);
 
   return !obbDisjointAndLowerBoundDistance
     (R, T, extent, other.extent, request, sqrDistLowerBound);
 }
-
 
 bool OBB::contain(const Vec3f& p) const
 {

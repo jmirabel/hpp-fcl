@@ -41,6 +41,10 @@ namespace hpp
 namespace fcl
 {
 
+  /// This function tests whether bounding boxes should be broken down.
+  ///
+  /// \param B, T orientation and position of 2nd OBB in frame of 1st OBB,
+  /// \param a, b extent of 1st and 2nd OBB.
   bool obbDisjointAndLowerBoundDistance (const Matrix3f& B, const Vec3f& T,
 					 const Vec3f& a, const Vec3f& b,
                                          const CollisionRequest& request,
