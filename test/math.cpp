@@ -45,9 +45,9 @@
 #include <hpp/fcl/internal/intersect.h>
 #include <hpp/fcl/internal/tools.h>
 
+#include "../src/aligned-math.h"
+
 using namespace hpp::fcl;
-
-
 
 BOOST_AUTO_TEST_CASE(vec_test_eigen_vec64)
 {
@@ -142,4 +142,54 @@ BOOST_AUTO_TEST_CASE(transform)
   // std::cout << rv << std::endl;
   // std::cout << output.lhs() << std::endl;
   BOOST_CHECK(isEqual(rv + T, tf.transform(v)));
+}
+
+BOOST_AUTO_TEST_CASE(aligned_math_init)
+{
+  AlignedMatrix3f<2> A;
+
+  A.storage.setZero();
+
+  A.matrix<0>().setOnes();
+  BOOST_CHECK(A.storage.row(0).isOnes());
+  BOOST_CHECK(A.storage.row(1).isZero());
+
+  A.matrix<1>().setConstant(-1);
+  BOOST_CHECK(A.storage.row(0).isOnes());
+  BOOST_CHECK(A.storage.row(1).isConstant(-1));
+}
+
+BOOST_AUTO_TEST_CASE(aligned_math_mult)
+{
+  AlignedMatrix3f<2> A;
+
+  A.storage.setRandom();
+
+  for (int i = 0; i < 2; ++i)
+    for (int r = 0; r < 3; ++r)
+      for (int c = 0; c < 3; ++c)
+        BOOST_CHECK_EQUAL(A.matrix(i)(r, c), A(r, c)[i]);
+
+  Vec3f vector (Vec3f::Random());
+  Eigen::Matrix<FCL_REAL, 2, 3> res;
+  A.mult(vector, res);
+  for (int i = 0; i < 2; ++i) {
+    BOOST_CHECK(res.row(i).transpose().isApprox(A.matrix(i) * vector));
+  }
+
+  A.transposeMult(vector, res);
+  for (int i = 0; i < 2; ++i) {
+    BOOST_CHECK(res.row(i).transpose().isApprox(A.matrix(i).transpose() * vector));
+  }
+
+  Eigen::Matrix<FCL_REAL, 2, 3> vectors;
+  vectors.setRandom();
+  A.mult(vectors, res);
+  for (int i = 0; i < 2; ++i) {
+    BOOST_CHECK(res.row(i).transpose().isApprox(A.matrix(i) * vectors.row(i).transpose()));
+  }
+  A.transposeMult(vectors, res);
+  for (int i = 0; i < 2; ++i) {
+    BOOST_CHECK(res.row(i).transpose().isApprox(A.matrix(i).transpose() * vectors.row(i).transpose()));
+  }
 }
