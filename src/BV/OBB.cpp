@@ -389,6 +389,167 @@ bool obbDisjointAndLowerBoundDistance (const Matrix3f& B, const Vec3f& T,
   return false;
 }
 
+/****************** obbDisjointAndLowerBoundDistance **************************/
+
+#ifdef HPP_FCL_VECTORIZE_OBB_DISJOINT
+namespace internal {
+template <int N>
+EIGEN_STRONG_INLINE void aligned_obbDisjoint_check_A_axis (
+    const typename AlignedMatrix3f<N>::AlignedVec3f& T,
+    const typename AlignedMatrix3f<N>::AlignedVec3f& a,
+    const typename AlignedMatrix3f<N>::AlignedVec3f& b,
+    const AlignedMatrix3f<N>& Bf,
+    Eigen::Array<FCL_REAL, N, 1>& squaredLowerBoundDistance)
+{
+  // |B| * b - |T| + a
+  typename AlignedMatrix3f<N>::AlignedVec3f AABB_corner;
+  Bf.mult(b, AABB_corner);
+  AABB_corner += a - T.cwiseAbs();
+  squaredLowerBoundDistance =
+         AABB_corner.array().col(0).min(0).abs2()
+    +    AABB_corner.array().col(1).min(0).abs2()
+    +    AABB_corner.array().col(2).min(0).abs2();
+}
+
+template <int N>
+EIGEN_STRONG_INLINE void aligned_obbDisjoint_check_B_axis (
+    const AlignedMatrix3f<N>& B,
+    const typename AlignedMatrix3f<N>::AlignedVec3f& T,
+    const typename AlignedMatrix3f<N>::AlignedVec3f& a,
+    const typename AlignedMatrix3f<N>::AlignedVec3f& b,
+    const AlignedMatrix3f<N>& Bf,
+    Eigen::Array<FCL_REAL, N, 1>& squaredLowerBoundDistance)
+{
+  // Bf = |B|
+  // res = - | B^T T| + Bf^T * a + b
+  typename AlignedMatrix3f<N>::AlignedArr3f res;
+
+  for (int k = 0; k < 3; ++k) {
+    res.col(k) = // Bf^T a
+      ( Bf(0,k).array() * a.array().col(0)
+      + Bf(1,k).array() * a.array().col(1)
+      + Bf(2,k).array() * a.array().col(2));
+    // | B^T T |
+    res.col(k) -=
+      ( B(0,k).array() * T.array().col(0)
+      + B(1,k).array() * T.array().col(1)
+      + B(2,k).array() * T.array().col(2)).abs();
+    res.col(k) += b.array().col(k);
+    res.col(k) = res.col(k).min(0).abs2();
+  }
+  squaredLowerBoundDistance = squaredLowerBoundDistance.max(res.rowwise().sum());
+}
+
+template <int N>
+EIGEN_STRONG_INLINE void aligned_obbDisjoint_check_Ai_cross_Bi (int ia, int ja, int ka,
+    int ib, int jb, int kb,
+    const AlignedMatrix3f<N>& B,
+    const typename AlignedMatrix3f<N>::AlignedVec3f& T,
+    const typename AlignedMatrix3f<N>::AlignedVec3f& a,
+    const typename AlignedMatrix3f<N>::AlignedVec3f& b,
+    const AlignedMatrix3f<N>& Bf,
+    Eigen::Array<FCL_REAL, N, 1>& squaredLowerBoundDistance)
+{
+  const Eigen::Array<FCL_REAL, N, 1> s (
+      T.col(ka).array() * B(ja, ib).array()
+      - T.col(ja).array() * B(ka, ib).array());
+
+  Eigen::Array<FCL_REAL, N, 1> diff (s.abs());
+  diff -= a.col(ja).array() * Bf(ka, ib).array();
+  diff -= a.col(ka).array() * Bf(ja, ib).array();
+  diff -= b.col(jb).array() * Bf(ia, kb).array();
+  diff -= b.col(kb).array() * Bf(ia, jb).array();
+  diff = diff.max(0).abs2();
+  // We need to divide by the norm || Aia x Bib ||
+  // As ||Aia|| = ||Bib|| = 1, (Aia | Bib)^2  = cosine^2
+  const Eigen::Array<FCL_REAL, N, 1> sinus2 (1 - Bf(ia,ib).array().abs2());
+  diff = squaredLowerBoundDistance.max(diff / sinus2),
+
+  squaredLowerBoundDistance = (sinus2 > 1e-6).select(
+      diff, squaredLowerBoundDistance);
+}
+
+} // namespace internal
+
+template <int N, bool EarlyStop>
+bool obbDisjointAndLowerBoundDistance (
+    const AlignedMatrix3f<N>& B,
+    const typename AlignedMatrix3f<N>::AlignedVec3f& T,
+    const typename AlignedMatrix3f<N>::AlignedVec3f& a,
+    const typename AlignedMatrix3f<N>::AlignedVec3f& b,
+    const CollisionRequest& request,
+    Eigen::Array<FCL_REAL, N, 1>& squaredLowerBoundDistance,
+    Eigen::Array<bool, N, 1>& ok)
+{
+  const FCL_REAL breakDistance (request.break_distance + request.security_margin);
+  const FCL_REAL breakDistance2 = breakDistance * breakDistance;
+
+  AlignedMatrix3f<N> Bf;
+  Eigen::Array<FCL_REAL, N, 1> d;
+  Bf.storage = B.storage.cwiseAbs();
+
+  // Corner of b axis aligned bounding box the closest to the origin
+  internal::aligned_obbDisjoint_check_A_axis (T, a, b, Bf, d);
+  if (EarlyStop) {
+    ok = (d > breakDistance2);
+    if (ok.all()) {
+      squaredLowerBoundDistance = d;
+      return true;
+    }
+  }
+
+  internal::aligned_obbDisjoint_check_B_axis (B, T, a, b, Bf, d);
+  if (EarlyStop) {
+    ok = (d > breakDistance2);
+    if (ok.all()) {
+      squaredLowerBoundDistance = d;
+      return true;
+    }
+  }
+
+  // Ai x Bj
+  int ja = 1, ka = 2;
+  for (int ia = 0; ia < 3; ++ia) {
+    int jb = 1, kb = 2;
+    for (int ib = 0; ib < 3; ++ib) {
+      internal::aligned_obbDisjoint_check_Ai_cross_Bi (ia, ja, ka, ib, jb, kb,
+          B, T, a, b, Bf, d);
+      if (EarlyStop) {
+        ok = (d > breakDistance2);
+        if (ok.all()) {
+          squaredLowerBoundDistance = d;
+          return true;
+        }
+      }
+      jb = kb; kb = ib;
+    }
+    ja = ka; ka = ia;
+  }
+
+  squaredLowerBoundDistance = d;
+  if (!EarlyStop) {
+    ok = (d > breakDistance2);
+    if (ok.all()) return true;
+  }
+  return false;
+}
+
+#define OBB_DISJOINT_SPECIALIZATION(N,EarlyStop)                               \
+template bool obbDisjointAndLowerBoundDistance<N, EarlyStop> (                 \
+    const AlignedMatrix3f<N>& B,                                               \
+    const typename AlignedMatrix3f<N>::AlignedVec3f& T,                        \
+    const typename AlignedMatrix3f<N>::AlignedVec3f& a,                        \
+    const typename AlignedMatrix3f<N>::AlignedVec3f& b,                        \
+    const CollisionRequest& request,                                           \
+    Eigen::Array<FCL_REAL, N, 1>& squaredLowerBoundDistance,                   \
+    Eigen::Array<bool, N, 1>& ok)
+
+OBB_DISJOINT_SPECIALIZATION(HPP_FCL_VECTORIZE_OBB_DISJOINT, true);
+OBB_DISJOINT_SPECIALIZATION(HPP_FCL_VECTORIZE_OBB_DISJOINT, false);
+
+#undef OBB_DISJOINT_SPECIALIZATION
+#endif
+
 /*************************** OBB functions ************************************/
 
 bool OBB::overlap(const OBB& other) const

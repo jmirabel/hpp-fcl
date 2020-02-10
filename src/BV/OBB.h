@@ -36,6 +36,14 @@
 #ifndef HPP_FCL_SRC_OBB_H
 # define HPP_FCL_SRC_OBB_H
 
+#include "../src/aligned-math.h"
+
+#if defined EIGEN_VECTORIZE_AVX512
+#define HPP_FCL_VECTORIZE_OBB_DISJOINT 8
+#elif defined EIGEN_VECTORIZE_AVX2
+#define HPP_FCL_VECTORIZE_OBB_DISJOINT 4
+#endif
+
 namespace hpp
 {
 namespace fcl
@@ -49,6 +57,23 @@ namespace fcl
 					 const Vec3f& a, const Vec3f& b,
                                          const CollisionRequest& request,
 					 FCL_REAL& squaredLowerBoundDistance);
+
+#ifdef HPP_FCL_VECTORIZE_OBB_DISJOINT
+  /// Vectorized version of obbDisjointAndLowerBoundDistance
+  /// \tparam N the number of OBB pairs to be considered.
+  /// \tparam EarlyStop turns on the checks on the squaredLowerBoundDistance
+  ///                   to know whether the algo can stop. In practice, enabling
+  ///                   this seems to be slower.
+  template <int N, bool EarlyStop = false>
+  bool obbDisjointAndLowerBoundDistance (
+      const AlignedMatrix3f<N>& B,
+      const typename AlignedMatrix3f<N>::AlignedVec3f& T,
+      const typename AlignedMatrix3f<N>::AlignedVec3f& a,
+      const typename AlignedMatrix3f<N>::AlignedVec3f& b,
+      const CollisionRequest& request,
+      Eigen::Array<FCL_REAL, N, 1>& squaredLowerBoundDistance,
+      Eigen::Array<bool, N, 1>& ok);
+#endif
 
   bool obbDisjoint(const Matrix3f& B, const Vec3f& T, const Vec3f& a,
 		   const Vec3f& b);
