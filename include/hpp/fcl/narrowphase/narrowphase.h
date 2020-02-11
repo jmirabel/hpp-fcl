@@ -285,217 +285,108 @@ namespace fcl
     mutable Vec3f cached_guess;
   };
 
-  /// @brief Fast implementation for sphere-capsule collision
-  template<>
-    bool GJKSolver::shapeIntersect<Sphere, Capsule>(const Sphere& s1, const Transform3f& tf1,
-                                                          const Capsule& s2, const Transform3f& tf2,
-                                                          Vec3f* contact_points, FCL_REAL* penetration_depth, Vec3f* normal) const;
+#define _GJK_SOLVER_DECLARE_SPECIALIZATION(S1,S2)                              \
+  template<> bool GJKSolver::shapeIntersect<S1, S2>(                           \
+      const S1& s1, const Transform3f& tf1,                                    \
+      const S2& s2, const Transform3f& tf2,                                    \
+      Vec3f* contact_points, FCL_REAL* penetration_depth, Vec3f* normal) const
 
-  template<>
-    bool GJKSolver::shapeIntersect<Capsule, Sphere>(const Capsule &s1, const Transform3f& tf1,
-                                                          const Sphere &s2, const Transform3f& tf2,
-                                                          Vec3f* contact_points, FCL_REAL* penetration_depth, Vec3f* normal) const;
+#define GJK_SOLVER_DECLARE_SPECIALIZATION(S1)                                  \
+  _GJK_SOLVER_DECLARE_SPECIALIZATION(S1,S1)
+
+#define GJK_SOLVER_DECLARE_SPECIALIZATIONS(S1,S2)                              \
+  _GJK_SOLVER_DECLARE_SPECIALIZATION(S1,S2);                                   \
+  _GJK_SOLVER_DECLARE_SPECIALIZATION(S2,S1)
+
+  /// @brief Fast implementation for sphere-capsule collision
+  GJK_SOLVER_DECLARE_SPECIALIZATIONS(Sphere, Capsule);
 
   /// @brief Fast implementation for sphere-sphere collision
-  template<>
-    bool GJKSolver::shapeIntersect<Sphere, Sphere>(const Sphere& s1, const Transform3f& tf1,
-                                                         const Sphere& s2, const Transform3f& tf2,
-                                                         Vec3f* contact_points, FCL_REAL* penetration_depth, Vec3f* normal) const;
+  GJK_SOLVER_DECLARE_SPECIALIZATION(Sphere);
 
   /// @brief Fast implementation for box-box collision
-  template<>
-    bool GJKSolver::shapeIntersect<Box, Box>(const Box& s1, const Transform3f& tf1,
-                                                   const Box& s2, const Transform3f& tf2,
-                                                   Vec3f* contact_points, FCL_REAL* penetration_depth, Vec3f* normal) const;
+  GJK_SOLVER_DECLARE_SPECIALIZATION(Box);
 
-  template<>
-    bool GJKSolver::shapeIntersect<Sphere, Halfspace>(const Sphere& s1, const Transform3f& tf1,
-                                                            const Halfspace& s2, const Transform3f& tf2,
-                                                            Vec3f* contact_points, FCL_REAL* penetration_depth, Vec3f* normal) const;
+  GJK_SOLVER_DECLARE_SPECIALIZATIONS(Sphere, Halfspace);
 
-  template<>
-    bool GJKSolver::shapeIntersect<Halfspace, Sphere>(const Halfspace& s1, const Transform3f& tf1,
-                                                            const Sphere& s2, const Transform3f& tf2,
-                                                            Vec3f* contact_points, FCL_REAL* penetration_depth, Vec3f* normal) const;
+  GJK_SOLVER_DECLARE_SPECIALIZATIONS(Box, Halfspace);
 
-  template<>
-    bool GJKSolver::shapeIntersect<Box, Halfspace>(const Box& s1, const Transform3f& tf1,
-                                                         const Halfspace& s2, const Transform3f& tf2,
-                                                         Vec3f* contact_points, FCL_REAL* penetration_depth, Vec3f* normal) const;
+  GJK_SOLVER_DECLARE_SPECIALIZATIONS(Capsule, Halfspace);
 
-  template<>
-    bool GJKSolver::shapeIntersect<Halfspace, Box>(const Halfspace& s1, const Transform3f& tf1,
-                                                         const Box& s2, const Transform3f& tf2,
-                                                         Vec3f* contact_points, FCL_REAL* penetration_depth, Vec3f* normal) const;
+  GJK_SOLVER_DECLARE_SPECIALIZATIONS(Cylinder, Halfspace);
 
-  template<>
-    bool GJKSolver::shapeIntersect<Capsule, Halfspace>(const Capsule& s1, const Transform3f& tf1,
-                                                             const Halfspace& s2, const Transform3f& tf2,
-                                                             Vec3f* contact_points, FCL_REAL* penetration_depth, Vec3f* normal) const;
+  GJK_SOLVER_DECLARE_SPECIALIZATIONS(Cone, Halfspace);
 
-  template<>
-    bool GJKSolver::shapeIntersect<Halfspace, Capsule>(const Halfspace& s1, const Transform3f& tf1,
-                                                             const Capsule& s2, const Transform3f& tf2,
-                                                             Vec3f* contact_points, FCL_REAL* penetration_depth, Vec3f* normal) const;
+  GJK_SOLVER_DECLARE_SPECIALIZATION(Halfspace);
 
-  template<>
-    bool GJKSolver::shapeIntersect<Cylinder, Halfspace>(const Cylinder& s1, const Transform3f& tf1,
-                                                              const Halfspace& s2, const Transform3f& tf2,
-                                                              Vec3f* contact_points, FCL_REAL* penetration_depth, Vec3f* normal) const;
+  GJK_SOLVER_DECLARE_SPECIALIZATIONS(Plane, Halfspace);
 
-  template<>
-    bool GJKSolver::shapeIntersect<Halfspace, Cylinder>(const Halfspace& s1, const Transform3f& tf1,
-                                                              const Cylinder& s2, const Transform3f& tf2,
-                                                              Vec3f* contact_points, FCL_REAL* penetration_depth, Vec3f* normal) const;
+  GJK_SOLVER_DECLARE_SPECIALIZATIONS(Sphere, Plane);
 
-  template<>
-    bool GJKSolver::shapeIntersect<Cone, Halfspace>(const Cone& s1, const Transform3f& tf1,
-                                                          const Halfspace& s2, const Transform3f& tf2,
-                                                          Vec3f* contact_points, FCL_REAL* penetration_depth, Vec3f* normal) const;
+  GJK_SOLVER_DECLARE_SPECIALIZATIONS(Box, Plane);
 
-  template<>
-    bool GJKSolver::shapeIntersect<Halfspace, Cone>(const Halfspace& s1, const Transform3f& tf1,
-                                                          const Cone& s2, const Transform3f& tf2,
-                                                          Vec3f* contact_points, FCL_REAL* penetration_depth, Vec3f* normal) const;
+  GJK_SOLVER_DECLARE_SPECIALIZATIONS(Capsule, Plane);
 
-  template<>
-    bool GJKSolver::shapeIntersect<Halfspace, Halfspace>(const Halfspace& s1, const Transform3f& tf1,
-                                                               const Halfspace& s2, const Transform3f& tf2,
-                                                               Vec3f* contact_points, FCL_REAL* penetration_depth, Vec3f* normal) const;
+  GJK_SOLVER_DECLARE_SPECIALIZATIONS(Cylinder, Plane);
 
-  template<>
-    bool GJKSolver::shapeIntersect<Plane, Halfspace>(const Plane& s1, const Transform3f& tf1,
-                                                           const Halfspace& s2, const Transform3f& tf2,
-                                                           Vec3f* contact_points, FCL_REAL* penetration_depth, Vec3f* normal) const;
+  GJK_SOLVER_DECLARE_SPECIALIZATIONS(Cone, Plane);
 
-  template<>
-    bool GJKSolver::shapeIntersect<Halfspace, Plane>(const Halfspace& s1, const Transform3f& tf1,
-                                                           const Plane& s2, const Transform3f& tf2,
-                                                           Vec3f* contact_points, FCL_REAL* penetration_depth, Vec3f* normal) const;
+  GJK_SOLVER_DECLARE_SPECIALIZATION(Plane);
 
-  template<>
-    bool GJKSolver::shapeIntersect<Sphere, Plane>(const Sphere& s1, const Transform3f& tf1,
-                                                        const Plane& s2, const Transform3f& tf2,
-                                                        Vec3f* contact_points, FCL_REAL* penetration_depth, Vec3f* normal) const;
+#undef _GJK_SOLVER_DECLARE_SPECIALIZATION
+#undef GJK_SOLVER_DECLARE_SPECIALIZATION
+#undef GJK_SOLVER_DECLARE_SPECIALIZATIONS
 
-  template<>
-    bool GJKSolver::shapeIntersect<Plane, Sphere>(const Plane& s1, const Transform3f& tf1,
-                                                        const Sphere& s2, const Transform3f& tf2,
-                                                        Vec3f* contact_points, FCL_REAL* penetration_depth, Vec3f* normal) const;
-
-  template<>
-    bool GJKSolver::shapeIntersect<Box, Plane>(const Box& s1, const Transform3f& tf1,
-                                                     const Plane& s2, const Transform3f& tf2,
-                                                     Vec3f* contact_points, FCL_REAL* penetration_depth, Vec3f* normal) const;
-
-  template<>
-    bool GJKSolver::shapeIntersect<Plane, Box>(const Plane& s1, const Transform3f& tf1,
-                                                     const Box& s2, const Transform3f& tf2,
-                                                     Vec3f* contact_points, FCL_REAL* penetration_depth, Vec3f* normal) const;
-
-  template<>
-    bool GJKSolver::shapeIntersect<Capsule, Plane>(const Capsule& s1, const Transform3f& tf1,
-                                                         const Plane& s2, const Transform3f& tf2,
-                                                         Vec3f* contact_points, FCL_REAL* penetration_depth, Vec3f* normal) const;
-
-  template<>
-    bool GJKSolver::shapeIntersect<Plane, Capsule>(const Plane& s1, const Transform3f& tf1,
-                                                         const Capsule& s2, const Transform3f& tf2,
-                                                         Vec3f* contact_points, FCL_REAL* penetration_depth, Vec3f* normal) const;
-
-  template<>
-    bool GJKSolver::shapeIntersect<Cylinder, Plane>(const Cylinder& s1, const Transform3f& tf1,
-                                                          const Plane& s2, const Transform3f& tf2,
-                                                          Vec3f* contact_points, FCL_REAL* penetration_depth, Vec3f* normal) const;
-
-  template<>
-    bool GJKSolver::shapeIntersect<Plane, Cylinder>(const Plane& s1, const Transform3f& tf1,
-                                                          const Cylinder& s2, const Transform3f& tf2,
-                                                          Vec3f* contact_points, FCL_REAL* penetration_depth, Vec3f* normal) const;
-
-  template<>
-    bool GJKSolver::shapeIntersect<Cone, Plane>(const Cone& s1, const Transform3f& tf1,
-                                                      const Plane& s2, const Transform3f& tf2,
-                                                      Vec3f* contact_points, FCL_REAL* penetration_depth, Vec3f* normal) const;
-
-  template<>
-    bool GJKSolver::shapeIntersect<Plane, Cone>(const Plane& s1, const Transform3f& tf1,
-                                                      const Cone& s2, const Transform3f& tf2,
-                                                      Vec3f* contact_points, FCL_REAL* penetration_depth, Vec3f* normal) const;
-
-  template<>
-    bool GJKSolver::shapeIntersect<Plane, Plane>(const Plane& s1, const Transform3f& tf1,
-                                                       const Plane& s2, const Transform3f& tf2,
-                                                       Vec3f* contact_points, FCL_REAL* penetration_depth, Vec3f* normal) const;
+#define GJK_SOLVER_DECLARE_SPECIALIZATION(S1)                                  \
+  template<> bool GJKSolver::shapeTriangleInteraction<S1>(                     \
+      const S1& s1, const Transform3f& tf1,                                    \
+      const Vec3f& P1, const Vec3f& P2, const Vec3f& P3, const Transform3f& M2,\
+      FCL_REAL& distance, Vec3f& p1, Vec3f& p2, Vec3f& normal) const
 
   /// @brief Fast implementation for sphere-triangle collision
-  template<>
-    bool GJKSolver::shapeTriangleInteraction
-    (const Sphere& s, const Transform3f& tf1, const Vec3f& P1, const Vec3f& P2,
-     const Vec3f& P3, const Transform3f& tf2, FCL_REAL& distance,
-     Vec3f& p1, Vec3f& p2, Vec3f& normal) const;
+  GJK_SOLVER_DECLARE_SPECIALIZATION(Sphere);
 
-  template<>
-    bool GJKSolver::shapeTriangleInteraction
-    (const Halfspace& s, const Transform3f& tf1, const Vec3f& P1, const Vec3f& P2,
-     const Vec3f& P3, const Transform3f& tf2, FCL_REAL& distance,
-     Vec3f& p1, Vec3f& p2, Vec3f& normal) const;
+  GJK_SOLVER_DECLARE_SPECIALIZATION(Halfspace);
 
-  template<>
-    bool GJKSolver::shapeTriangleInteraction
-    (const Plane& s, const Transform3f& tf1, const Vec3f& P1, const Vec3f& P2,
-     const Vec3f& P3, const Transform3f& tf2, FCL_REAL& distance,
-     Vec3f& p1, Vec3f& p2, Vec3f& normal) const;
+  GJK_SOLVER_DECLARE_SPECIALIZATION(Plane);
+
+#undef GJK_SOLVER_DECLARE_SPECIALIZATION
+
+#define _GJK_SOLVER_DECLARE_SPECIALIZATION(S1,S2)                              \
+  template<> bool GJKSolver::shapeDistance<S1, S2>(                            \
+      const S1& s1, const Transform3f& tf1,                                    \
+      const S2& s2, const Transform3f& tf2,                                    \
+     FCL_REAL& dist, Vec3f& p1, Vec3f& p2, Vec3f& normal) const
+
+#define GJK_SOLVER_DECLARE_SPECIALIZATION(S1)                                  \
+  _GJK_SOLVER_DECLARE_SPECIALIZATION(S1,S1)
+
+#define GJK_SOLVER_DECLARE_SPECIALIZATIONS(S1,S2)                              \
+  _GJK_SOLVER_DECLARE_SPECIALIZATION(S1,S2);                                   \
+  _GJK_SOLVER_DECLARE_SPECIALIZATION(S2,S1)
 
   /// @brief Fast implementation for sphere-capsule distance
-  template<>
-    bool GJKSolver::shapeDistance<Sphere, Capsule>
-    (const Sphere& s1, const Transform3f& tf1,
-     const Capsule& s2, const Transform3f& tf2,
-     FCL_REAL& dist, Vec3f& p1, Vec3f& p2, Vec3f& normal) const;
-
-  template<>
-    bool GJKSolver::shapeDistance<Capsule, Sphere>
-    (const Capsule& s1, const Transform3f& tf1,
-     const Sphere& s2, const Transform3f& tf2,
-     FCL_REAL& dist, Vec3f& p1, Vec3f& p2, Vec3f& normal) const;
+  GJK_SOLVER_DECLARE_SPECIALIZATIONS(Sphere, Capsule);
 
   /// @brief Fast implementation for sphere-cylinder distance
-  template<>
-    bool GJKSolver::shapeDistance<Sphere, Cylinder>
-    (const Sphere& s1, const Transform3f& tf1,
-     const Cylinder& s2, const Transform3f& tf2,
-     FCL_REAL& dist, Vec3f& p1, Vec3f& p2, Vec3f& normal) const;
-
-  template<>
-    bool GJKSolver::shapeDistance<Cylinder, Sphere>
-    (const Cylinder& s1, const Transform3f& tf1,
-     const Sphere& s2, const Transform3f& tf2,
-     FCL_REAL& dist, Vec3f& p1, Vec3f& p2, Vec3f& normal) const;
+  GJK_SOLVER_DECLARE_SPECIALIZATIONS(Sphere, Cylinder);
 
   /// @brief Fast implementation for sphere-sphere distance
-  template<>
-    bool GJKSolver::shapeDistance<Sphere, Sphere>
-    (const Sphere& s1, const Transform3f& tf1,
-     const Sphere& s2, const Transform3f& tf2,
-     FCL_REAL& dist, Vec3f& p1, Vec3f& p2, Vec3f& normal) const;
+  GJK_SOLVER_DECLARE_SPECIALIZATION(Sphere);
 
-  // @brief Computation of the distance result for capsule capsule. Closest points are based on two line-segments.
-  template<>
-    bool GJKSolver::shapeDistance<Capsule, Capsule>
-    (const Capsule& s1, const Transform3f& tf1,
-     const Capsule& s2, const Transform3f& tf2,
-     FCL_REAL& dist, Vec3f& p1, Vec3f& p2, Vec3f& normal) const;
+  /// @brief Computation of the distance result for capsule capsule.
+  /// Closest points are based on two line-segments.
+  GJK_SOLVER_DECLARE_SPECIALIZATION(Capsule);
 
-  // Distance computation between two triangles
-  //
-  // Do not run EPA algorithm to compute penetration depth, use a dedicated
-  // method.
-  template<>
-    bool GJKSolver::shapeDistance<TriangleP, TriangleP>
-    (const TriangleP& s1, const Transform3f& tf1,
-     const TriangleP& s2, const Transform3f& tf2,
-     FCL_REAL& dist, Vec3f& p1, Vec3f& p2, Vec3f& normal) const;
+  /// Distance computation between two triangles
+  ///
+  /// Do not run EPA algorithm to compute penetration depth, use a dedicated
+  /// method.
+  GJK_SOLVER_DECLARE_SPECIALIZATION(TriangleP);
+
+#undef _GJK_SOLVER_DECLARE_SPECIALIZATION
+#undef GJK_SOLVER_DECLARE_SPECIALIZATION
+#undef GJK_SOLVER_DECLARE_SPECIALIZATIONS
 
 }
 
