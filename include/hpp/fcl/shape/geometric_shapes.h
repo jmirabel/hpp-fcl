@@ -148,6 +148,8 @@ public:
 };
 
 /// @brief Center at zero point capsule 
+/// The capsule segment is between the origin and the point
+/// \f$ (0, 0, 2*halfLength) \f$. Hence, the capsule is along the Z axis.
 class Capsule : public ShapeBase
 {
 public:

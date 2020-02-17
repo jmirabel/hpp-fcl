@@ -83,10 +83,7 @@ std::size_t collide(const CollisionGeometry* o1, const Transform3f& tf1,
                     const CollisionGeometry* o2, const Transform3f& tf2,
                     const CollisionRequest& request, CollisionResult& result)
 {
-  GJKSolver solver;
-  solver.enable_cached_guess = request.enable_cached_gjk_guess;
-  if (solver.enable_cached_guess)
-    solver.cached_guess = request.cached_gjk_guess;
+  GJKSolver solver (request);
 
   const CollisionFunctionMatrix& looktable = getCollisionFunctionLookTable();
   result.distance_lower_bound = -1;

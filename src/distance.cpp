@@ -64,7 +64,7 @@ FCL_REAL distance(const CollisionGeometry* o1, const Transform3f& tf1,
                   const CollisionGeometry* o2, const Transform3f& tf2,
                   const DistanceRequest& request, DistanceResult& result)
 {
-  GJKSolver solver;
+  GJKSolver solver (request);
 
   const DistanceFunctionMatrix& looktable = getDistanceFunctionLookTable();
 

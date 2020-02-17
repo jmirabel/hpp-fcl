@@ -216,6 +216,8 @@ static const FCL_REAL EPA_EPS = 0.000001;
 static const size_t EPA_MAX_ITERATIONS = 255;
 
 /// @brief class for EPA algorithm
+///
+/// @note The computations are performed in the frame of the first shape.
 struct EPA
 {
   typedef GJK::SimplexV SimplexV;

@@ -40,6 +40,7 @@
 #define HPP_FCL_NARROWPHASE_H
 
 #include <hpp/fcl/narrowphase/gjk.h>
+#include <hpp/fcl/collision_data.h>
 
 namespace hpp
 {
@@ -233,8 +234,30 @@ namespace fcl
     }
 
     /// @brief default setting for GJK algorithm
-    GJKSolver()
+    GJKSolver() { init(); }
+
+    GJKSolver(const CollisionRequest& request)
     {
+      init();
+
+      security_margin = request.security_margin;
+      break_distance = request.break_distance;
+
+      if (request.enable_cached_gjk_guess) {
+        enable_cached_guess = true;
+        cached_guess = request.cached_gjk_guess;
+      }
+    }
+
+    GJKSolver(const DistanceRequest&)
+    {
+      init();
+    }
+
+    inline void init()
+    {
+      security_margin = 0;
+      break_distance = 0.001;
       gjk_max_iterations = 128;
       gjk_tolerance = 1e-6;
       epa_max_face_num = 128;
@@ -259,6 +282,12 @@ namespace fcl
     {
       return cached_guess;
     }
+
+    /// \copydoc CollisionRequest::security_margin
+    FCL_REAL security_margin;
+
+    /// \copydoc CollisionRequest::break_distance
+    FCL_REAL break_distance;
 
     /// @brief maximum number of simplex face used in EPA algorithm
     unsigned int epa_max_face_num;
