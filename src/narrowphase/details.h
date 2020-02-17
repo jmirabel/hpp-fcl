@@ -41,6 +41,8 @@
 #include <hpp/fcl/internal/traversal_node_setup.h>
 #include <hpp/fcl/narrowphase/narrowphase.h>
 
+#define _CLAMP(value, l, u) fmax(fmin(value, u), l)
+
 namespace hpp
 {
 namespace fcl {
@@ -671,7 +673,99 @@ namespace fcl {
       return res;
     }
 
+    inline bool capsuleCapsuleDistance
+      (const Capsule& capsule1, const Transform3f& tf1,
+       const Capsule& capsule2, const Transform3f& tf2,
+       FCL_REAL& distance, Vec3f& pc1, Vec3f& pc2,
+       Vec3f& normal)
+      {
+        FCL_REAL EPSILON = std::numeric_limits<FCL_REAL>::epsilon () * 100;
 
+        // We assume that capsules are centered at the origin.
+        const fcl::Vec3f& c1 = tf1.getTranslation ();
+        const fcl::Vec3f& c2 = tf2.getTranslation ();
+        // We assume that capsules are oriented along z-axis.
+        FCL_REAL halfLength1 = capsule1.halfLength;
+        FCL_REAL halfLength2 = capsule2.halfLength;
+        FCL_REAL radius1 = capsule1.radius;
+        FCL_REAL radius2 = capsule2.radius;
+        // direction of capsules
+        // ||d1|| = 2 * halfLength1
+        const fcl::Vec3f d1 = 2 * halfLength1 * tf1.getRotation().col(2);
+        const fcl::Vec3f d2 = 2 * halfLength2 * tf2.getRotation().col(2);
+
+        // Starting point of the segments
+        // p1 + d1 is the end point of the segment
+        const fcl::Vec3f p1 = c1 - d1 / 2;
+        const fcl::Vec3f p2 = c2 - d2 / 2;
+        const fcl::Vec3f r = p1-p2;
+        FCL_REAL a = d1.dot(d1);
+        FCL_REAL b = d1.dot(d2);
+        FCL_REAL c = d1.dot(r);
+        FCL_REAL e = d2.dot(d2);
+        FCL_REAL f = d2.dot(r);
+        // S1 is parametrized by the equation p1 + s * d1
+        // S2 is parametrized by the equation p2 + t * d2
+        FCL_REAL s = 0.0;
+        FCL_REAL t = 0.0;
+
+        if (a <= EPSILON && e <= EPSILON)
+        {
+          // Check if the segments degenerate into points
+          s = t = 0.0;
+        }
+        else if (a <= EPSILON)
+        {
+          // First segment is degenerated
+          s = 0.0;
+          t = _CLAMP(f / e, 0.0, 1.0);
+        }
+        else if (e <= EPSILON)
+        {
+          // Second segment is degenerated
+          s = _CLAMP(-c / a, 0.0, 1.0);
+          t = 0.0;
+        }
+        else
+        {
+          // Always non-negative, equal 0 if the segments are colinear
+          FCL_REAL denom = fmax(a*e-b*b, 0);
+
+          if (denom > EPSILON)
+          {
+            s = _CLAMP((b*f-c*e) / denom, 0.0, 1.0);
+          }
+          else
+          {
+            s = 0.0;
+          }
+
+          t = (b*s + f) / e;
+          if (t < 0.0)
+          {
+            t = 0.0;
+            s = _CLAMP(-c / a, 0.0, 1.0);
+          }
+          else if (t > 1.0)
+          {
+            t = 1.0;
+            s = _CLAMP((b - c)/a, 0.0, 1.0);
+          }
+        }
+
+        // witness points achieving the distance between the two segments
+        const Vec3f w1 = p1 + s * d1;
+        const Vec3f w2 = p2 + t * d2;
+        distance = (w1 - w2).norm();
+        normal = (w1 - w2) / distance;
+
+        // capsule spcecific distance computation
+        distance = distance - (radius1 + radius2);
+        // witness points for the capsules
+        pc1 = w1 - radius1 * normal;
+        pc2 = w2 + radius2 * normal;
+        return distance > 0;
+      }
 
     struct ContactPoint
     {
@@ -2660,5 +2754,7 @@ namespace fcl {
   } // details
 } // namespace fcl
 } // namespace hpp
+
+#undef _CLAMP
 
 #endif // HPP_FCL_SRC_NARROWPHASE_DETAILS_H
