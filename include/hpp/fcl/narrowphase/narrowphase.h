@@ -66,6 +66,7 @@ namespace fcl
       shape.set (&s1, &s2, tf1, tf2);
   
       details::GJK gjk((unsigned int )gjk_max_iterations, gjk_tolerance);
+      gjk.setDistanceEarlyBreak(security_margin + break_distance);
       details::GJK::Status gjk_status = gjk.evaluate(shape, -guess);
       if(enable_cached_guess) cached_guess = gjk.getGuessFromSimplex();
     
@@ -117,6 +118,7 @@ namespace fcl
       shape.set (&s, &tri);
   
       details::GJK gjk((unsigned int )gjk_max_iterations, gjk_tolerance);
+      gjk.setDistanceEarlyBreak(security_margin + break_distance);
       details::GJK::Status gjk_status = gjk.evaluate(shape, -guess);
       if(enable_cached_guess) cached_guess = gjk.getGuessFromSimplex();
 
