@@ -70,10 +70,12 @@ namespace fcl {
       }
     }
 
+    /// \param[out] distance the distance between the shapes. A negative value
+    ///             means the penetration.
     inline bool sphereCapsuleIntersect
       (const Sphere& s1, const Transform3f& tf1,
        const Capsule& s2, const Transform3f& tf2,
-       Vec3f* contact_points, FCL_REAL* penetration_depth, Vec3f* normal_)
+       FCL_REAL& distance, Vec3f* contact_points, Vec3f* normal_)
     {
       Vec3f pos1 (tf2.transform (Vec3f (0., 0.,  s2.halfLength))); // from distance function
       Vec3f pos2 (tf2.transform (Vec3f (0., 0., -s2.halfLength)));
@@ -82,25 +84,19 @@ namespace fcl {
       Vec3f segment_point;
 
       lineSegmentPointClosestToPoint (s_c, pos1, pos2, segment_point);
-      Vec3f diff = s_c - segment_point;
+      Vec3f diff = segment_point - s_c;
 
       FCL_REAL diffN = diff.norm();
-      FCL_REAL distance = diffN - s1.radius - s2.radius;
+      distance = diffN - s1.radius - s2.radius;
 
       if (distance > 0)
         return false;
 
-      // Vec3f normal (-diff.normalized());
-
-      if (distance < 0 && penetration_depth)
-        *penetration_depth = -distance;
-
       if (normal_)
-        *normal_ = -diff / diffN;
+        *normal_ = diff / diffN;
 
-      if (contact_points) {
-        *contact_points = segment_point + diff * s2.radius;
-      }
+      if (contact_points)
+        *contact_points = segment_point - diff * s2.radius;
 
       return true;
     }
@@ -122,17 +118,17 @@ namespace fcl {
       dist = norm - s1.radius - s2.radius;
 
       static const FCL_REAL eps (std::numeric_limits<FCL_REAL>::epsilon());
-      if (norm > eps) {
-        normal.normalize();
-      } else {
-        normal << 1,0,0;
-      }
-      p1 = s_c + normal * s1.radius;
-      p2 = segment_point - normal * s2.radius;
+      if (norm > eps)
+        normal /= norm;
+      else
+        normal = Vec3f(1,0,0);
 
       if(dist <= 0) {
         p1 = p2 = .5 * (p1+p2);
         return false;
+      } else {
+        p1 = s_c + normal * s1.radius;
+        p2 = segment_point - normal * s2.radius;
       }
       return true;
     }
@@ -231,15 +227,14 @@ namespace fcl {
     inline bool sphereSphereIntersect
       (const Sphere& s1, const Transform3f& tf1,
        const Sphere& s2, const Transform3f& tf2,
-       Vec3f* contact_points, FCL_REAL* penetration_depth, Vec3f* normal)
+       FCL_REAL& distance, Vec3f* contact_points, Vec3f* normal)
     {
       Vec3f diff = tf2.getTranslation() - tf1.getTranslation();
       FCL_REAL len = diff.norm();
-      if(len > s1.radius + s2.radius)
+      FCL_REAL R = s1.radius + s2.radius;
+      distance = len - R;
+      if(distance > 0)
         return false;
-
-      if(penetration_depth)
-        *penetration_depth = s1.radius + s2.radius - len;
 
       // If the centers of two sphere are at the same position, the normal is (0, 0, 0).
       // Otherwise, normal is pointing from center of object 1 to center of object 2
@@ -252,7 +247,7 @@ namespace fcl {
         }
 
       if(contact_points)
-        *contact_points = tf1.getTranslation() + diff * s1.radius / (s1.radius + s2.radius);
+        *contact_points = tf1.getTranslation() + diff * (s1.radius / R);
 
       return true;
     }
@@ -265,13 +260,13 @@ namespace fcl {
     {
       Vec3f o1 = tf1.getTranslation();
       Vec3f o2 = tf2.getTranslation();
-      Vec3f diff = o1 - o2;
+      Vec3f diff = o2 - o1;
       FCL_REAL len = diff.norm();
-      normal = -diff/len;
+      normal = diff/len;
       dist = len - s1.radius - s2.radius;
 
-      p1 = o1 - diff * (s1.radius / len);
-      p2 = o2 + diff * (s2.radius / len);
+      p1 = o1 + diff * (s1.radius / len);
+      p2 = o2 - diff * (s2.radius / len);
 
       return (dist >=0);
     }
@@ -1930,7 +1925,7 @@ namespace fcl {
     inline bool planeHalfspaceIntersect
       (const Plane& s1, const Transform3f& tf1,
        const Halfspace& s2, const Transform3f& tf2, Plane& pl, Vec3f& p,
-       Vec3f& d, FCL_REAL& penetration_depth, int& ret)
+       Vec3f& d, FCL_REAL& distance, int& ret)
     {
       Plane new_s1 = transform(s1, tf1);
       Halfspace new_s2 = transform(s2, tf2);
@@ -1943,9 +1938,9 @@ namespace fcl {
         {
           if((new_s1.n).dot(new_s2.n) > 0)
             {
-              if(new_s1.d < new_s2.d)
+              distance = new_s1.d - new_s2.d;
+              if(distance < 0)
                 {
-                  penetration_depth = new_s2.d - new_s1.d;
                   ret = 1;
                   pl = new_s1;
                   return true;
@@ -1955,11 +1950,12 @@ namespace fcl {
             }
           else
             {
-              if(new_s1.d + new_s2.d > 0)
+              distance = new_s1.d + new_s2.d;
+              if(distance > 0)
                 return false;
               else
                 {
-                  penetration_depth = -(new_s1.d + new_s2.d);
+                  distance = - distance;
                   ret = 2;
                   pl = new_s1;
                   return true;
@@ -1974,7 +1970,7 @@ namespace fcl {
       p = origin;
       d = dir;
       ret = 3;
-      penetration_depth = std::numeric_limits<FCL_REAL>::max();
+      distance = -std::numeric_limits<FCL_REAL>::max();
 
       return true;
     }
@@ -1991,7 +1987,7 @@ namespace fcl {
                                    const Halfspace& s2, const Transform3f& tf2,
                                    Vec3f& p, Vec3f& d,
                                    Halfspace& s,
-                                   FCL_REAL& penetration_depth, int& ret)
+                                   FCL_REAL& distance, int& ret)
     {
       Halfspace new_s1 = transform(s1, tf1);
       Halfspace new_s2 = transform(s2, tf2);
@@ -2001,35 +1997,35 @@ namespace fcl {
       Vec3f dir = (new_s1.n).cross(new_s2.n);
       FCL_REAL dir_norm = dir.squaredNorm();
       if(dir_norm < std::numeric_limits<FCL_REAL>::epsilon()) // parallel
+      {
+        if((new_s1.n).dot(new_s2.n) > 0)
         {
-          if((new_s1.n).dot(new_s2.n) > 0)
-            {
-              if(new_s1.d < new_s2.d) // s1 is inside s2
-                {
-                  ret = 1;
-                  penetration_depth = std::numeric_limits<FCL_REAL>::max();
-                  s = new_s1;
-                }
-              else // s2 is inside s1
-                {
-                  ret = 2;
-                  penetration_depth = std::numeric_limits<FCL_REAL>::max();
-                  s = new_s2;
-                }
-              return true;
-            }
-          else
-            {
-              if(new_s1.d + new_s2.d > 0) // not collision
-                return false;
-              else // in each other
-                {
-                  ret = 3;
-                  penetration_depth = -(new_s1.d + new_s2.d);
-                  return true;
-                }
-            }
+          distance = new_s2.d - new_s1.d;
+          if(distance > 0) // s1 is inside s2
+          {
+            ret = 1;
+            distance = -distance;
+            s = new_s1;
+          }
+          else // s2 is inside s1
+          {
+            ret = 2;
+            s = new_s2;
+          }
+          return true;
         }
+        else
+        {
+          distance = new_s1.d + new_s2.d;
+          if(distance > 0) // not collision
+            return false;
+          else // in each other
+          {
+            ret = 3;
+            return true;
+          }
+        }
+      }
 
       Vec3f n = new_s2.n * new_s1.d - new_s1.n * new_s2.d;
       Vec3f origin = n.cross(dir);
@@ -2038,7 +2034,7 @@ namespace fcl {
       p = origin;
       d = dir;
       ret = 4;
-      penetration_depth = std::numeric_limits<FCL_REAL>::max();
+      distance = -std::numeric_limits<FCL_REAL>::max();
 
       return true;
     }
@@ -2694,24 +2690,27 @@ namespace fcl {
     inline bool halfspacePlaneIntersect
       (const Halfspace& s1, const Transform3f& tf1,
        const Plane& s2, const Transform3f& tf2,
-       Plane& pl, Vec3f& p, Vec3f& d, FCL_REAL& penetration_depth, int& ret)
+       Plane& pl, Vec3f& p, Vec3f& d, FCL_REAL& distance, int& ret)
     {
-      return planeHalfspaceIntersect(s2, tf2, s1, tf1, pl, p, d, penetration_depth, ret);
+      return planeHalfspaceIntersect(s2, tf2, s1, tf1, pl, p, d, distance, ret);
     }
 
     inline bool planeIntersect
       (const Plane& s1, const Transform3f& tf1,
        const Plane& s2, const Transform3f& tf2,
-       Vec3f* /*contact_points*/, FCL_REAL* /*penetration_depth*/, Vec3f* /*normal*/)
+       FCL_REAL& distance, Vec3f* /*contact_points*/, Vec3f* /*normal*/)
     {
       Plane new_s1 = transform(s1, tf1);
       Plane new_s2 = transform(s2, tf2);
 
       FCL_REAL a = (new_s1.n).dot(new_s2.n);
-      if(a == 1 && new_s1.d != new_s2.d)
+      distance = fabs(new_s1.d - new_s2.d);
+      if(a > 1-1e-8 && distance > 1e-8)
         return false;
-      if(a == -1 && new_s1.d != -new_s2.d)
+      distance = fabs(new_s1.d + new_s2.d);
+      if(a < -1-1e-8 && distance > 1e-8)
         return false;
+      distance = -std::numeric_limits<FCL_REAL>::max();
 
       return true;
     }
