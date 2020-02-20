@@ -39,6 +39,10 @@
 #include <hpp/fcl/internal/intersect.h>
 #include <hpp/fcl/internal/tools.h>
 
+#include <gepetto/viewer/corba/client.hh>
+#include <gepetto/viewer/corba/conversions.hh>
+#include <gepetto/viewer/corba/api.hh>
+
 namespace hpp
 {
 namespace fcl
@@ -46,6 +50,108 @@ namespace fcl
 
 namespace details
 {
+
+namespace gui {
+using namespace gepetto::corbaserver;
+using namespace gepetto::viewer::corba;
+
+using gepetto::viewer::corba::connect;
+using gepetto::viewer::corba::connected;
+using gepetto::viewer::corba::gui;
+
+const float red[4] = {0.8f, 0.f, 0.f, 1.f};
+const float green[4] = {0.f, 0.8f, 0.f, 1.f};
+const float blue[4] = {0.f, 0.f, 0.8f, 1.f};
+
+std::string lastAdded;
+std::string lastSelected;
+bool stop = true;
+
+void initialize()
+{
+  connect("EPA", true, NULL, "localhost", 12321);
+  if (!connected()) return;
+  gui()->deleteNode("faces", true);
+  gui()->deleteNode("points", true);
+  gui()->createGroup("faces");
+  gui()->addToGroup("faces", "EPA");
+  gui()->createGroup("points");
+  gui()->addToGroup("points", "EPA");
+
+  lastSelected = "";
+  lastAdded = "";
+}
+
+void drawFace (const EPA* epa, const EPA::SimplexF* face)
+{
+  if (!connected()) return;
+  std::ostringstream oss;
+  oss << "faces/" << int(face-epa->fc_store);
+  std::string name (oss.str());
+
+  gui()->addCurve(name.c_str(),
+      positionSeq({
+        { face->vertex[0]->w[0], face->vertex[0]->w[1], face->vertex[0]->w[2] },
+        { face->vertex[1]->w[0], face->vertex[1]->w[1], face->vertex[1]->w[2] },
+        { face->vertex[2]->w[0], face->vertex[2]->w[1], face->vertex[2]->w[2] },
+        }),
+      green);
+  gui()->setCurveMode(name.c_str(),"POLYGON");
+  if (!lastAdded.empty())
+    gui()->setCurveMode(lastAdded.c_str(),"LINE_LOOP");
+  lastAdded = name;
+
+  std::cout << "Add face " << int(face-epa->fc_store) << std::endl;
+  if (stop) std::cin.get();
+}
+
+void removeFace (const EPA* epa, const EPA::SimplexF* face)
+{
+  if (!connected()) return;
+  std::ostringstream oss;
+  oss << "faces/" << int(face-epa->fc_store);
+  std::string name (oss.str());
+
+  if (!lastAdded.empty())
+    gui()->setCurveMode(lastAdded.c_str(),"LINE_LOOP");
+  gui()->setCurveMode(name.c_str(),"POLYGON");
+  lastAdded = "";
+  lastSelected = "";
+
+  std::cout << "Will remove face " << int(face-epa->fc_store) << std::endl;
+  if (stop) std::cin.get();
+
+  gui()->deleteNode(name.c_str(), false);
+}
+
+void selectFace (const EPA* epa, const EPA::SimplexF* face)
+{
+  if (!connected()) return;
+  std::ostringstream oss;
+  oss << "faces/" << int(face-epa->fc_store);
+  std::string name (oss.str());
+
+  if (!lastSelected.empty() && gui()->nodeExists(lastSelected.c_str())) {
+    gui()->setColor(lastSelected.c_str(), green);
+    gui()->setCurveMode(lastSelected.c_str(),"LINE_LOOP");
+  }
+  gui()->setColor(name.c_str(),red);
+  gui()->setCurveMode(name.c_str(),"POLYGON");
+  lastSelected = name;
+}
+
+void drawVertex (const char* name, const Vec3f& v, const float& radius, const float color[4])
+{
+  if (!connected()) return;
+  if (gui()->addSphere(name, radius, color))
+    gui()->addToGroup(name, "points");
+
+  Transform q { (float)v[0], (float)v[1], (float)v[2], 0.f, 0.f, 0.f, 1.f, };
+  gui()->applyConfiguration(name, q);
+  gui()->refresh();
+}
+
+}
 
 struct shape_traits_base
 {
@@ -1054,6 +1160,8 @@ void EPA::initialize()
   nextsv = 0;
   for(size_t i = 0; i < max_face_num; ++i)
     stock.append(&fc_store[max_face_num-i-1]);
+
+  gui::initialize();
 }
 
 bool EPA::getEdgeDist(SimplexF* face, SimplexV* a, SimplexV* b, FCL_REAL& dist)
@@ -1097,6 +1205,9 @@ EPA::SimplexF* EPA::newFace(SimplexV* a, SimplexV* b, SimplexV* c, bool forced)
     face->vertex[0] = a;
     face->vertex[1] = b;
     face->vertex[2] = c;
+
+    gui::drawFace(this, face);
+
     face->n = (b->w - a->w).cross(c->w - a->w);
     FCL_REAL l = face->n.norm();
       
@@ -1111,6 +1222,8 @@ EPA::SimplexF* EPA::newFace(SimplexV* a, SimplexV* b, SimplexV* c, bool forced)
         face->d = a->w.dot(face->n);
       }
 
+      std::cout << "face " << int(face-fc_store) << ": " << face->d << std::endl;
+
       if(forced || face->d >= -tolerance)
         return face;
       else
@@ -1118,6 +1231,13 @@ EPA::SimplexF* EPA::newFace(SimplexV* a, SimplexV* b, SimplexV* c, bool forced)
     }
     else
       status = Degenerated;
+
+
+    gui::drawVertex("a", a->w, 0.005f, gui::red);
+    gui::drawVertex("b", b->w, 0.005f, gui::red);
+    gui::drawVertex("c", c->w, 0.005f, gui::red);
+
+    gui::removeFace (this, face);
 
     hull.remove(face);
     stock.append(face);
@@ -1153,6 +1273,7 @@ EPA::Status EPA::evaluate(GJK& gjk, const Vec3f& guess)
     while(hull.root)
     {
       SimplexF* f = hull.root;
+      gui::removeFace (this, f);
       hull.remove(f);
       stock.append(f);
     }
@@ -1181,6 +1302,7 @@ EPA::Status EPA::evaluate(GJK& gjk, const Vec3f& guess)
     if(hull.count == 4)
     {
       SimplexF* best = findBest(); // find the best face (the face with the minimum distance to origin) to split
+      gui::selectFace (this, best);
       SimplexF outer = *best;
       size_t pass = 0;
       size_t iterations = 0;
@@ -1207,7 +1329,9 @@ EPA::Status EPA::evaluate(GJK& gjk, const Vec3f& guess)
         best->pass = ++pass;
         // At the moment, SimplexF.n is always normalized. This could be revised in the future...
         gjk.getSupport(best->n, true, *w);
+        gui::drawVertex("best", w->w, 0.005f, gui::blue);
         FCL_REAL wdist = best->n.dot(w->w) - best->d;
+        std::cout << "iteration: " << iterations << ": " << wdist << std::endl;
         if(wdist <= tolerance) {
           status = AccuracyReached;
           break;
@@ -1221,9 +1345,11 @@ EPA::Status EPA::evaluate(GJK& gjk, const Vec3f& guess)
         }
         // need to add the edge connectivity between first and last faces
         bind(horizon.ff, 2, horizon.cf, 1);
+        gui::removeFace (this, best);
         hull.remove(best);
         stock.append(best);
         best = findBest();
+        gui::selectFace (this, best);
         outer = *best;
       }
 
@@ -1256,8 +1382,11 @@ bool EPA::expand(size_t pass, SimplexV* w, SimplexF* f, size_t e, SimplexHorizon
   static const size_t previ[] = {2, 0, 1};
 
   if(f->pass == pass)
+  {
+    std::cout << "Invalid hull: face " << int(f - fc_store) << " already visited." << std::endl;
     return false;
-  
+  }
+
   const size_t e1 = nexti[e];
     
   // case 1: the new face is not degenerated, i.e., the new face is not coplanar with the old face f.
@@ -1281,6 +1410,16 @@ bool EPA::expand(size_t pass, SimplexV* w, SimplexF* f, size_t e, SimplexHorizon
       ++horizon.nf;
       return true;
     }
+    std::cout << "Invalid hull: could not create new face for face " << int(f - fc_store) << "\n"
+     "error code is ";
+    switch (status) {
+      case Degenerated: std::cout << "Degenerated"; break;
+      case NonConvex: std::cout << "NonConvex"; break;
+      case OutOfVertices: std::cout << "OutOfVertices"; break;
+      case OutOfFaces: std::cout << "OutOfFaces"; break;
+      default: std::cout << status; break;
+    }
+    std::cout << std::endl;
     return false;
   }
 
@@ -1289,6 +1428,7 @@ bool EPA::expand(size_t pass, SimplexV* w, SimplexF* f, size_t e, SimplexHorizon
   f->pass = pass;
   if(expand(pass, w, f->f[e1], f->e[e1], horizon) && expand(pass, w, f->f[e2], f->e[e2], horizon))
   {
+    gui::removeFace (this, f);
     hull.remove(f);
     stock.append(f);
     return true;

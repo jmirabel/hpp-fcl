@@ -71,6 +71,7 @@ COMPUTE_PROJECT_ARGS(PROJECT_ARGS LANGUAGES CXX)
 PROJECT(${PROJECT_NAME} ${PROJECT_ARGS})
 
 add_required_dependency("eigen3 >= 3.0.0")
+add_required_dependency("gepetto-viewer-corba")
 
 if (BUILD_PYTHON_INTERFACE)
   ADD_REQUIRED_DEPENDENCY("eigenpy >= 1.2")

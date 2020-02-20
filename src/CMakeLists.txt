@@ -112,6 +112,7 @@ target_include_directories(${LIBRARY_NAME}
   )
 
 PKG_CONFIG_USE_DEPENDENCY(${LIBRARY_NAME} assimp)
+PKG_CONFIG_USE_DEPENDENCY(${LIBRARY_NAME} gepetto-viewer-corba)
 if (NOT ${ASSIMP_VERSION} VERSION_LESS "2.0.1150")
   target_compile_definitions(${LIBRARY_NAME} PRIVATE -DHPP_FCL_USE_ASSIMP_UNIFIED_HEADER_NAMES)
   message(STATUS "Assimp version has unified headers")
