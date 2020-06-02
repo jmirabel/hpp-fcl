@@ -1,0 +1,46 @@
+name: CI for hpp-fcl
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the master branch
+on:
+  push:
+    branches: [ ci ]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ windows-latest, ]
+        compiler: [ clang, ]
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: recursive
+    - name: Install dependencies
+      uses: jrl-umi3218/github-actions/install-dependencies@master
+      with:
+        compiler: ${{ matrix.compiler }}
+        build-type: Release
+        ubuntu: |
+          apt: libeigen3-dev doxygen doxygen-latex libboost-all-dev
+        macos: |
+          brew: eigen boost
+        windows: |
+          github:
+            - path: eigenteam/eigen-git-mirror
+              ref: 3.3.7
+            - path: assimp/assimp
+              ref: v5.0.1
+    - name: Build and test
+      uses: jrl-umi3218/github-actions/build-cmake-project@master
+      with:
+        compiler: ${{ matrix.compiler }}
+        build-type: RelWithDebInfo
+        options: -DBUILD_PYTHON_INTERFACE=OFF
