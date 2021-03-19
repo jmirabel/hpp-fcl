@@ -35,8 +35,8 @@
 
 /** \author Jia Pan */
 
-#ifndef FCL_BROAD_PHASE_SPATIAL_HASH_H
-#define FCL_BROAD_PHASE_SPATIAL_HASH_H
+#ifndef HPP_FCL_BROAD_PHASE_SPATIAL_HASH_H
+#define HPP_FCL_BROAD_PHASE_SPATIAL_HASH_H
 
 #include <hpp/fcl/broadphase/broadphase.h>
 #include <hpp/fcl/broadphase/hash.h>
@@ -44,8 +44,8 @@
 #include <list>
 #include <map>
 
-namespace fcl
-{
+namespace hpp {
+namespace fcl {
 
 /// @brief Spatial hash function: hash an AABB to a set of integer values
 struct SpatialHash
@@ -53,27 +53,21 @@ struct SpatialHash
   SpatialHash(const AABB& scene_limit_, FCL_REAL cell_size_) : cell_size(cell_size_),
                                                                scene_limit(scene_limit_)
   {
-    width[0] = std::ceil(scene_limit.width() / cell_size);
-    width[1] = std::ceil(scene_limit.height() / cell_size);
-    width[2] = std::ceil(scene_limit.depth() / cell_size);
+    width = (scene_limit.diagonal() / cell_size).array().ceil().cast<unsigned int>();
   }
     
   std::vector<unsigned int> operator() (const AABB& aabb) const
   {
-    int min_x = std::floor((aabb.min_[0] - scene_limit.min_[0]) / cell_size);
-    int max_x = std::ceil((aabb.max_[0] - scene_limit.min_[0]) / cell_size);
-    int min_y = std::floor((aabb.min_[1] - scene_limit.min_[1]) / cell_size);
-    int max_y = std::ceil((aabb.max_[1] - scene_limit.min_[1]) / cell_size);
-    int min_z = std::floor((aabb.min_[2] - scene_limit.min_[2]) / cell_size);
-    int max_z = std::ceil((aabb.max_[2] - scene_limit.min_[2]) / cell_size);
+    Eigen::Array<int, 3, 1> min (( (aabb.min_ - scene_limit.min_) / cell_size).array().floor().cast<int>());
+    Eigen::Array<int, 3, 1> max (( (aabb.max_ - scene_limit.min_) / cell_size).array().floor().cast<int>());
 
-    std::vector<unsigned int> keys((max_x - min_x) * (max_y - min_y) * (max_z - min_z));
+    std::vector<unsigned int> keys((max - min).prod());
     int id = 0;
-    for(int x = min_x; x < max_x; ++x)
+    for(int x = min[0]; x < max[0]; ++x)
     {
-      for(int y = min_y; y < max_y; ++y)
+      for(int y = min[1]; y < max[1]; ++y)
       {
-        for(int z = min_z; z < max_z; ++z)
+        for(int z = min[2]; z < max[2]; ++z)
         {
           keys[id++] = x + y * width[0] + z * width[0] * width[1];
         }
@@ -86,7 +80,7 @@ private:
 
   FCL_REAL cell_size;
   AABB scene_limit;
-  unsigned int width[3];
+  Eigen::Array<unsigned int, 3, 1> width;
 };
 
 /// @brief spatial hashing collision mananger
@@ -190,10 +184,9 @@ protected:
 
 };
 
-
-}
+} // namespace fcl
+} // namespace hpp
 
 #include <hpp/fcl/broadphase/broadphase_spatialhash.hxx>
-
 
 #endif

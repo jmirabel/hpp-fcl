@@ -35,16 +35,16 @@
 
 /** \author Jia Pan */
 
-#ifndef FCL_BROAD_PHASE_INTERVAL_TREE_H
-#define FCL_BROAD_PHASE_INTERVAL_TREE_H
+#ifndef HPP_FCL_BROAD_PHASE_INTERVAL_TREE_H
+#define HPP_FCL_BROAD_PHASE_INTERVAL_TREE_H
 
 #include <hpp/fcl/broadphase/broadphase.h>
 #include <hpp/fcl/broadphase/interval_tree.h>
 #include <deque>
 #include <map>
 
-namespace fcl
-{
+namespace hpp {
+namespace fcl {
 
 /// @brief Collision manager based on interval tree
 class IntervalTreeCollisionManager : public BroadPhaseCollisionManager
@@ -158,7 +158,7 @@ protected:
   bool setup_;
 };
 
-
-}
+} // namespace fcl
+} // namespace hpp
 
 #endif

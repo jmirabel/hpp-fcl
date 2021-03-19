@@ -35,8 +35,8 @@
 
 /** \author Jia Pan */
 
-#ifndef FCL_BROAD_PHASE_DYNAMIC_AABB_TREE_ARRAY_H
-#define FCL_BROAD_PHASE_DYNAMIC_AABB_TREE_ARRAY_H
+#ifndef HPP_FCL_BROAD_PHASE_DYNAMIC_AABB_TREE_ARRAY_H
+#define HPP_FCL_BROAD_PHASE_DYNAMIC_AABB_TREE_ARRAY_H
 
 #include <hpp/fcl/broadphase/broadphase.h>
 #include <hpp/fcl/broadphase/hierarchy_tree.h>
@@ -46,9 +46,8 @@
 #include <boost/bind.hpp>
 #include <limits>
 
-
-namespace fcl
-{
+namespace hpp {
+namespace fcl {
 
 class DynamicAABBTreeCollisionManager_Array : public BroadPhaseCollisionManager
 {
@@ -157,7 +156,7 @@ private:
   void update_(CollisionObject* updated_obj);  
 };
 
-
-}
+} // namespace fcl
+} // namespace hpp
 
 #endif

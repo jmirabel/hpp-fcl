@@ -35,8 +35,8 @@
 
 /** \author Jia Pan  */
 
-#ifndef FCL_HIERARCHY_TREE_H
-#define FCL_HIERARCHY_TREE_H
+#ifndef HPP_FCL_HIERARCHY_TREE_H
+#define HPP_FCL_HIERARCHY_TREE_H
 
 #include <vector>
 #include <map>
@@ -45,8 +45,8 @@
 #include <boost/bind.hpp>
 #include <boost/iterator/zip_iterator.hpp>
 
-namespace fcl
-{
+namespace hpp {
+namespace fcl {
 
 /// @brief dynamic AABB tree node
 template<typename BV>
@@ -72,7 +72,7 @@ struct NodeBase
   };
 
   /// @brief morton code for current BV
-  FCL_UINT32 code;
+  uint32_t code;
 
   NodeBase()
   {
@@ -236,9 +236,9 @@ private:
   /// @brief init tree from leaves using morton code. It uses morton_2, i.e., for all nodes, we simply divide the leaves into parts with the same size simply using the node index.
   void init_3(std::vector<NodeType*>& leaves);
   
-  NodeType* mortonRecurse_0(const NodeVecIterator lbeg, const NodeVecIterator lend, const FCL_UINT32& split, int bits);
+  NodeType* mortonRecurse_0(const NodeVecIterator lbeg, const NodeVecIterator lend, const uint32_t& split, int bits);
 
-  NodeType* mortonRecurse_1(const NodeVecIterator lbeg, const NodeVecIterator lend, const FCL_UINT32& split, int bits);
+  NodeType* mortonRecurse_1(const NodeVecIterator lbeg, const NodeVecIterator lend, const uint32_t& split, int bits);
 
   NodeType* mortonRecurse_2(const NodeVecIterator lbeg, const NodeVecIterator lend);
 
@@ -331,7 +331,7 @@ struct NodeBase
     void* data;
   };
 
-  FCL_UINT32 code;
+  uint32_t code;
   
   bool isLeaf() const { return (children[1] == (size_t)(-1)); }
   bool isInternal() const { return !isLeaf(); }
@@ -405,7 +405,7 @@ class HierarchyTree
     }
 
     NodeType* nodes;
-    FCL_UINT32 split;
+    uint32_t split;
   };
 
 public:
@@ -516,9 +516,9 @@ private:
   /// @brief init tree from leaves using morton code. It uses morton_2, i.e., for all nodes, we simply divide the leaves into parts with the same size simply using the node index.
   void init_3(NodeType* leaves, int n_leaves_);
 
-  size_t mortonRecurse_0(size_t* lbeg, size_t* lend, const FCL_UINT32& split, int bits);
+  size_t mortonRecurse_0(size_t* lbeg, size_t* lend, const uint32_t& split, int bits);
 
-  size_t mortonRecurse_1(size_t* lbeg, size_t* lend, const FCL_UINT32& split, int bits);
+  size_t mortonRecurse_1(size_t* lbeg, size_t* lend, const uint32_t& split, int bits);
 
   size_t mortonRecurse_2(size_t* lbeg, size_t* lend);
 
@@ -584,10 +584,9 @@ const size_t HierarchyTree<BV>::NULL_NODE;
 
 }
 
-}
-
+} // namespace fcl
+} // namespace hpp
 
 #include <hpp/fcl/broadphase/hierarchy_tree.hxx>
-
 
 #endif

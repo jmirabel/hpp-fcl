@@ -40,8 +40,8 @@
 #include <limits>
 #include <boost/bind.hpp>
 
-namespace fcl
-{
+namespace hpp {
+namespace fcl {
 
 void SaPCollisionManager::unregisterObject(CollisionObject* obj)
 {
@@ -762,6 +762,5 @@ bool SaPCollisionManager::empty() const
   return AABB_arr.size();
 }
 
-
-
-}
+} // namespace fcl
+} // namespace hpp

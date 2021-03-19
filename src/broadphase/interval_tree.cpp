@@ -39,9 +39,8 @@
 #include <iostream>
 #include <cstdlib>
 
-
-namespace fcl
-{
+namespace hpp {
+namespace fcl {
 
 IntervalTreeNode::IntervalTreeNode(){}
 
@@ -563,4 +562,5 @@ std::deque<SimpleInterval*> IntervalTree::query(double low, double high)
   return result_stack;
 }
 
-}
+} // namespace fcl
+} // namespace hpp

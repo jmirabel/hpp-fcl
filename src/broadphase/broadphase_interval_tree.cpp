@@ -40,8 +40,8 @@
 #include <limits>
 #include <boost/bind.hpp>
 
-namespace fcl
-{
+namespace hpp {
+namespace fcl {
 
 void IntervalTreeCollisionManager::unregisterObject(CollisionObject* obj)
 {
@@ -56,8 +56,8 @@ void IntervalTreeCollisionManager::unregisterObject(CollisionObject* obj)
 
   if(start1 < end1)
   {
-    unsigned int start_id = start1 - endpoints[0].begin();
-    unsigned int end_id = end1 - endpoints[0].begin();
+    unsigned int start_id = (unsigned)(start1 - endpoints[0].begin());
+    unsigned int end_id = (unsigned)(end1 - endpoints[0].begin());
     unsigned int cur_id = start_id;
     for(unsigned int i = start_id; i < end_id; ++i)
     {
@@ -82,8 +82,8 @@ void IntervalTreeCollisionManager::unregisterObject(CollisionObject* obj)
 
   if(start2 < end2)
   {
-    unsigned int start_id = start2 - endpoints[1].begin();
-    unsigned int end_id = end2 - endpoints[1].begin();
+    unsigned int start_id = (unsigned)(start2 - endpoints[1].begin());
+    unsigned int end_id = (unsigned)(end2 - endpoints[1].begin());
     unsigned int cur_id = start_id;
     for(unsigned int i = start_id; i < end_id; ++i)
     {
@@ -109,8 +109,8 @@ void IntervalTreeCollisionManager::unregisterObject(CollisionObject* obj)
 
   if(start3 < end3)
   {
-    unsigned int start_id = start3 - endpoints[2].begin();
-    unsigned int end_id = end3 - endpoints[2].begin();
+    unsigned int start_id = (unsigned)(start3 - endpoints[2].begin());
+    unsigned int end_id = (unsigned)(end3 - endpoints[2].begin());
     unsigned int cur_id = start_id;
     for(unsigned int i = start_id; i < end_id; ++i)
     {
@@ -188,7 +188,7 @@ void IntervalTreeCollisionManager::setup()
     for(int i = 0; i < 3; ++i)
       interval_trees[i] = new IntervalTree;
 
-    for(unsigned int i = 0, size = endpoints[0].size(); i < size; ++i)
+    for(std::size_t i = 0, size = endpoints[0].size(); i < size; ++i)
     {
       EndPoint p = endpoints[0][i];
       CollisionObject* obj = p.obj;
@@ -216,7 +216,7 @@ void IntervalTreeCollisionManager::update()
 {
   setup_ = false;
 
-  for(unsigned int i = 0, size = endpoints[0].size(); i < size; ++i)
+  for(std::size_t i = 0, size = endpoints[0].size(); i < size; ++i)
   {
     if(endpoints[0][i].minmax == 0)
       endpoints[0][i].value = endpoints[0][i].obj->getAABB().min_[0];
@@ -224,7 +224,7 @@ void IntervalTreeCollisionManager::update()
       endpoints[0][i].value = endpoints[0][i].obj->getAABB().max_[0];
   }
 
-  for(unsigned int i = 0, size = endpoints[1].size(); i < size; ++i)
+  for(std::size_t i = 0, size = endpoints[1].size(); i < size; ++i)
   {
     if(endpoints[1][i].minmax == 0)
       endpoints[1][i].value = endpoints[1][i].obj->getAABB().min_[1];
@@ -232,7 +232,7 @@ void IntervalTreeCollisionManager::update()
       endpoints[1][i].value = endpoints[1][i].obj->getAABB().max_[1];
   }
 
-  for(unsigned int i = 0, size = endpoints[2].size(); i < size; ++i)
+  for(std::size_t i = 0, size = endpoints[2].size(); i < size; ++i)
   {
     if(endpoints[2][i].minmax == 0)
       endpoints[2][i].value = endpoints[2][i].obj->getAABB().min_[2];
@@ -325,7 +325,7 @@ void IntervalTreeCollisionManager::getObjects(std::vector<CollisionObject*>& obj
 {
   objs.resize(endpoints[0].size() / 2);
   unsigned int j = 0;
-  for(unsigned int i = 0, size = endpoints[0].size(); i < size; ++i)
+  for(std::size_t i = 0, size = endpoints[0].size(); i < size; ++i)
   {
     if(endpoints[0][i].minmax == 0)
     {
@@ -355,9 +355,9 @@ bool IntervalTreeCollisionManager::collide_(CollisionObject* obj, void* cdata, C
       results2 = interval_trees[2]->query(obj->getAABB().min_[2], obj->getAABB().max_[2]);
       if(results2.size() > CUTOFF)
       {
-        int d1 = results0.size();
-        int d2 = results1.size();
-        int d3 = results2.size();
+        std::size_t d1 = results0.size();
+        std::size_t d2 = results1.size();
+        std::size_t d3 = results2.size();
 
         if(d1 >= d2 && d1 >= d3)
           return checkColl(results0.begin(), results0.end(), obj, cdata, callback);
@@ -415,9 +415,9 @@ bool IntervalTreeCollisionManager::distance_(CollisionObject* obj, void* cdata, 
         results2 = interval_trees[2]->query(aabb.min_[2], aabb.max_[2]);
         if(results2.size() > CUTOFF)
         {
-          int d1 = results0.size();
-          int d2 = results1.size();
-          int d3 = results2.size();
+          std::size_t d1 = results0.size();
+          std::size_t d2 = results1.size();
+          std::size_t d3 = results2.size();
 
           if(d1 >= d2 && d1 >= d3)
             dist_res = checkDist(results0.begin(), results0.end(), obj, cdata, callback, min_dist);
@@ -475,7 +475,7 @@ void IntervalTreeCollisionManager::collide(void* cdata, CollisionCallBack callba
 
   std::set<CollisionObject*> active;
   std::set<std::pair<CollisionObject*, CollisionObject*> > overlap;
-  unsigned int n = endpoints[0].size();
+  std::size_t n = endpoints[0].size();
   double diff_x = endpoints[0][0].value - endpoints[0][n-1].value;
   double diff_y = endpoints[1][0].value - endpoints[1][n-1].value;
   double diff_z = endpoints[2][0].value - endpoints[2][n-1].value;
@@ -652,4 +652,5 @@ bool IntervalTreeCollisionManager::checkDist(std::deque<SimpleInterval*>::const_
   return false;
 }
 
-}
+} // namespace fcl
+} // namespace hpp

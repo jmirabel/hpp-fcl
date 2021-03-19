@@ -36,14 +36,14 @@
 /** \author Jia Pan */
 
 
-#ifndef FCL_INTERVAL_TREE_H
-#define FCL_INTERVAL_TREE_H
+#ifndef HPP_FCL_INTERVAL_TREE_H
+#define HPP_FCL_INTERVAL_TREE_H
 
 #include <deque>
 #include <limits>
 
-namespace fcl
-{
+namespace hpp {
+namespace fcl {
 
 /// @brief Interval trees implemented using red-black-trees as described in
 /// the book Introduction_To_Algorithms_ by Cormen, Leisserson, and Rivest.
@@ -160,8 +160,7 @@ private:
   unsigned int recursion_node_stack_top;
 };
 
-}
+} // namespace fcl
+} // namespace hpp
 
 #endif
-
-

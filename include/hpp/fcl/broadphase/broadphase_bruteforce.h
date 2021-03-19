@@ -35,15 +35,14 @@
 
 /** \author Jia Pan */
 
-#ifndef FCL_BROAD_PHASE_BRUTE_FORCE_H
-#define FCL_BROAD_PHASE_BRUTE_FORCE_H
+#ifndef HPP_FCL_BROAD_PHASE_BRUTE_FORCE_H
+#define HPP_FCL_BROAD_PHASE_BRUTE_FORCE_H
 
 #include <hpp/fcl/broadphase/broadphase.h>
 #include <list>
 
-
-namespace fcl
-{
+namespace hpp {
+namespace fcl {
 
 /// @brief Brute force N-body collision manager
 class NaiveCollisionManager : public BroadPhaseCollisionManager
@@ -102,7 +101,7 @@ protected:
   std::list<CollisionObject*> objs;
 };
 
-
-}
+} // namespace fcl
+} // namespace hpp
 
 #endif

@@ -35,8 +35,8 @@
 
 /** \author Jia Pan */
 
-namespace fcl
-{
+namespace hpp {
+namespace fcl {
 
 template<typename HashTable>
 void SpatialHashingCollisionManager<HashTable>::registerObject(CollisionObject* obj)
@@ -456,4 +456,5 @@ size_t SpatialHashingCollisionManager<HashTable>::size() const
   return objs.size();
 }
 
-}
+} // namespace fcl
+} // namespace hpp

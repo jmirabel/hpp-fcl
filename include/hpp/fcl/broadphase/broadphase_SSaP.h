@@ -36,13 +36,13 @@
 /** \author Jia Pan */
 
 
-#ifndef FCL_BROAD_PHASE_SSAP_H
-#define FCL_BROAD_PHASE_SSAP_H
+#ifndef HPP_FCL_BROAD_PHASE_SSAP_H
+#define HPP_FCL_BROAD_PHASE_SSAP_H
 
 #include <hpp/fcl/broadphase/broadphase.h>
 
-namespace fcl
-{
+namespace hpp {
+namespace fcl {
 
 /// @brief Simple SAP collision manager 
 class SSaPCollisionManager : public BroadPhaseCollisionManager
@@ -152,7 +152,7 @@ protected:
   bool setup_;
 };
 
-
-}
+} // namespace fcl
+} // namespace hpp
 
 #endif

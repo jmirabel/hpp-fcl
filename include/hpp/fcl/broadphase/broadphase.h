@@ -37,15 +37,15 @@
 
 
 
-#ifndef FCL_BROAD_PHASE_H
-#define FCL_BROAD_PHASE_H
+#ifndef HPP_FCL_BROAD_PHASE_H
+#define HPP_FCL_BROAD_PHASE_H
 
 #include <hpp/fcl/collision_object.h>
 #include <set>
 #include <vector>
 
-namespace fcl
-{
+namespace hpp {
+namespace fcl {
 
 
 /// @brief Callback for collision between two objects. Return value is whether can stop now.
@@ -146,8 +146,8 @@ protected:
 
 };
 
-
-}
+} // namespace fcl
+} // namespace hpp
 
 #include <hpp/fcl/broadphase/broadphase_bruteforce.h>
 #include <hpp/fcl/broadphase/broadphase_spatialhash.h>

@@ -39,8 +39,8 @@
 #include <algorithm>
 #include <limits>
 
-namespace fcl
-{
+namespace hpp {
+namespace fcl {
 
 /** \brief Functor sorting objects according to the AABB lower x bound */
 struct SortByXLow
@@ -228,19 +228,19 @@ bool SSaPCollisionManager::collide_(CollisionObject* obj, void* cdata, Collision
 
   std::vector<CollisionObject*>::const_iterator pos_start1 = objs_x.begin();
   std::vector<CollisionObject*>::const_iterator pos_end1 = std::upper_bound(pos_start1, objs_x.end(), &dummyHigh, SortByXLow());
-  unsigned int d1 = pos_end1 - pos_start1;
+  long int d1 = pos_end1 - pos_start1;
 
   if(d1 > CUTOFF)
   {
     std::vector<CollisionObject*>::const_iterator pos_start2 = objs_y.begin();
     std::vector<CollisionObject*>::const_iterator pos_end2 = std::upper_bound(pos_start2, objs_y.end(), &dummyHigh, SortByYLow());
-    unsigned int d2 = pos_end2 - pos_start2;
+    long int d2 = pos_end2 - pos_start2;
 
     if(d2 > CUTOFF)
     {
       std::vector<CollisionObject*>::const_iterator pos_start3 = objs_z.begin();
       std::vector<CollisionObject*>::const_iterator pos_end3 = std::upper_bound(pos_start3, objs_z.end(), &dummyHigh, SortByZLow());
-      unsigned int d3 = pos_end3 - pos_start3;
+      long int d3 = pos_end3 - pos_start3;
 
       if(d3 > CUTOFF)
       {
@@ -299,19 +299,19 @@ bool SSaPCollisionManager::distance_(CollisionObject* obj, void* cdata, Distance
     DummyCollisionObject dummyHigh((AABB(dummy_vector)));
 
     pos_end1 = std::upper_bound(pos_start1, objs_x.end(), &dummyHigh, SortByXLow());
-    unsigned int d1 = pos_end1 - pos_start1;
+    long int d1 = pos_end1 - pos_start1;
 
     bool dist_res = false;
     
     if(d1 > CUTOFF)
     {
       pos_end2 = std::upper_bound(pos_start2, objs_y.end(), &dummyHigh, SortByYLow());
-      unsigned int d2 = pos_end2 - pos_start2;
+      long int d2 = pos_end2 - pos_start2;
 
       if(d2 > CUTOFF)
       {
         pos_end3 = std::upper_bound(pos_start3, objs_z.end(), &dummyHigh, SortByZLow());
-        unsigned int d3 = pos_end3 - pos_start3;
+        long int d3 = pos_end3 - pos_start3;
 
         if(d3 > CUTOFF)
         {
@@ -353,7 +353,7 @@ bool SSaPCollisionManager::distance_(CollisionObject* obj, void* cdata, Distance
         }
         else // need more loop
         {
-          if(isEqual(dummy_vector, obj->getAABB().max_))
+          if(dummy_vector.isApprox(obj->getAABB().max_))
             dummy_vector.noalias() += delta;
           else
             dummy_vector = dummy_vector * 2 - obj->getAABB().max_;
@@ -500,6 +500,5 @@ bool SSaPCollisionManager::empty() const
   return objs_x.empty();
 }
 
-
-
-}
+} // namespace fcl
+} // namespace hpp

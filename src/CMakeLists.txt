@@ -52,7 +52,7 @@ set(${LIBRARY_NAME}_SOURCES
   broadphase/broadphase_SSaP.cpp
   broadphase/broadphase_dynamic_AABB_tree_array.cpp
   broadphase/broadphase_interval_tree.cpp
-  broadphase/broadphase_spatialhash.cpp
+  #broadphase/broadphase_spatialhash.cpp
   broadphase/hierarchy_tree.cpp
   narrowphase/narrowphase.cpp
   narrowphase/gjk.cpp

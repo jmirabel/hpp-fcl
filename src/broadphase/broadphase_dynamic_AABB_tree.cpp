@@ -38,15 +38,14 @@
 
 #include <hpp/fcl/broadphase/broadphase_dynamic_AABB_tree.h>
 
-#ifdef FCL_HAVE_OCTOMAP
+#ifdef HPP_FCL_HAVE_OCTOMAP
 #include <hpp/fcl/octree.h>
 #endif
 
-namespace fcl
-{
+namespace hpp {
+namespace fcl {
 
-namespace details
-{
+namespace details {
 
 namespace dynamic_AABB_tree
 {
@@ -462,7 +461,7 @@ bool collisionRecurse(DynamicAABBTreeCollisionManager::DynamicAABBNode* root, Co
     
   if(!root->bv.overlap(query->getAABB())) return false;
 
-  int select_res = select(query->getAABB(), *(root->children[0]), *(root->children[1]));
+  size_t select_res = select(query->getAABB(), *(root->children[0]), *(root->children[1]));
     
   if(collisionRecurse(root->children[select_res], query, cdata, callback))
     return true;
@@ -679,14 +678,14 @@ void DynamicAABBTreeCollisionManager::setup()
 {
   if(!setup_)
   {
-    int num = dtree.size();
+    size_t num = dtree.size();
     if(num == 0) 
     {
       setup_ = true; 
       return;
     }
     
-    int height = dtree.getMaxHeight();
+    FCL_REAL height = (FCL_REAL)dtree.getMaxHeight();
 
     
     if(height - std::log((FCL_REAL)num) / std::log(2.0) < max_tree_nonbalanced_level)
@@ -814,4 +813,6 @@ void DynamicAABBTreeCollisionManager::distance(BroadPhaseCollisionManager* other
   FCL_REAL min_dist = std::numeric_limits<FCL_REAL>::max();
   details::dynamic_AABB_tree::distanceRecurse(dtree.getRoot(), other_manager->dtree.getRoot(), cdata, callback, min_dist);
 }
-}
+
+} // namespace fcl
+} // namespace hpp

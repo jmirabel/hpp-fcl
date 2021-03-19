@@ -36,8 +36,3 @@
 /** \author Jia Pan */
 
 #include <hpp/fcl/broadphase/broadphase_spatialhash.h>
-
-namespace fcl
-{
-
-}

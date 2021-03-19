@@ -38,8 +38,8 @@
 #include <hpp/fcl/broadphase/broadphase_bruteforce.h>
 #include <limits>
 
-namespace fcl
-{
+namespace hpp {
+namespace fcl {
 
 void NaiveCollisionManager::registerObjects(const std::vector<CollisionObject*>& other_objs)
 {
@@ -194,5 +194,5 @@ bool NaiveCollisionManager::empty() const
   return objs.empty();
 }
 
-
-}
+} // namespace fcl
+} // namespace hpp

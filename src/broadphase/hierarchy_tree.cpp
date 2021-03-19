@@ -37,8 +37,8 @@
 
 #include <hpp/fcl/broadphase/hierarchy_tree.h>
 
-namespace fcl
-{
+namespace hpp {
+namespace fcl {
 
 template<>
 size_t select(const NodeBase<AABB>& node, const NodeBase<AABB>& node1, const NodeBase<AABB>& node2)
@@ -131,6 +131,6 @@ size_t select(const AABB& query, size_t node1, size_t node2, NodeBase<AABB>* nod
   return (d1 < d2) ? 0 : 1;
 }
 
-}
-
-}
+} // namespace implementation_array
+} // namespace fcl
+} // namespace hpp

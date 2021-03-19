@@ -35,8 +35,8 @@
 
 /** \author Jia Pan */
 
-#ifndef FCL_HASH_H
-#define FCL_HASH_H
+#ifndef HPP_FCL_HASH_H
+#define HPP_FCL_HASH_H
 
 #include <stdexcept>
 #include <set>
@@ -44,8 +44,8 @@
 #include <list>
 #include <boost/unordered_map.hpp>
 
-namespace fcl
-{
+namespace hpp {
+namespace fcl {
 
 /// @brief A simple hash table implemented as multiple buckets. HashFnc is any extended hash function: HashFnc(key) = {index1, index2, ..., }
 template<typename Key, typename Data, typename HashFnc>
@@ -184,6 +184,7 @@ public:
 };
 
 
-}
+} // namespace fcl
+} // namespace hpp
 
 #endif
